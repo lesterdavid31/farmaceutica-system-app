@@ -59,6 +59,8 @@ Se crearán con el seed en la fase 1.
 
 ## Despliegue
 
+Producción: <https://farmaceutica-system-app.vercel.app> (API en `/api/v1`, Swagger en `/api/docs`). Proyecto de Vercel `farmaceutica-system-app` conectado a GitHub: cada push a `main` despliega a producción.
+
 Ver [`docs/despliegue.md`](./docs/despliegue.md).
 
 ## Versiones y desviaciones de la especificación
