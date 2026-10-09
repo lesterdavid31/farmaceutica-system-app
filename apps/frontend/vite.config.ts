@@ -12,5 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // En producción frontend y backend comparten dominio (Vercel Services);
+    // en desarrollo se replica con un proxy hacia la API local.
+    proxy: {
+      '/api': 'http://localhost:3000',
+    },
   },
 });

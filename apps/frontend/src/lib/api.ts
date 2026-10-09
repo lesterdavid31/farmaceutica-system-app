@@ -1,4 +1,6 @@
-const URL_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+// Vacío por defecto: frontend y backend se sirven desde el mismo dominio (Vercel Services),
+// y en desarrollo Vite redirige /api a la API local. Solo se define para apuntar a otro backend.
+const URL_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 export const URL_API = `${URL_BASE}/api/v1`;
 
@@ -21,7 +23,7 @@ export async function obtenerJson<T>(ruta: string, init?: RequestInit): Promise<
   } catch {
     throw new ErrorApi(
       0,
-      `No se pudo conectar con la API en ${URL_BASE}. Revise que esté en línea.`,
+      `No se pudo conectar con la API en ${URL_API}. Revise que esté en línea.`,
     );
   }
   if (!respuesta.ok) {

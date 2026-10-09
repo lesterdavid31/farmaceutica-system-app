@@ -35,13 +35,13 @@ npm run dev:frontend   # http://localhost:5173
 
 ## Variables de entorno
 
-| App      | Variable       | Descripción                                                                                    |
-| -------- | -------------- | ---------------------------------------------------------------------------------------------- |
-| backend  | `DATABASE_URL` | Conexión _pooled_ de Neon (tiempo de ejecución)                                                |
-| backend  | `DIRECT_URL`   | Conexión directa de Neon (migraciones de Prisma)                                               |
-| backend  | `CORS_ORIGINS` | Dominios del frontend permitidos, separados por coma. En desarrollo se agrega `localhost:5173` |
-| backend  | `PORT`         | Puerto local (3000 por defecto)                                                                |
-| frontend | `VITE_API_URL` | URL del backend, sin `/api/v1`                                                                 |
+| App      | Variable       | Descripción                                                                                   |
+| -------- | -------------- | --------------------------------------------------------------------------------------------- |
+| backend  | `DATABASE_URL` | Conexión _pooled_ de Neon (tiempo de ejecución)                                               |
+| backend  | `DIRECT_URL`   | Conexión directa de Neon (migraciones de Prisma)                                              |
+| backend  | `CORS_ORIGINS` | Opcional. Dominios extra permitidos por CORS. En desarrollo se agrega `localhost:5173`        |
+| backend  | `PORT`         | Puerto local (3000 por defecto)                                                               |
+| frontend | `VITE_API_URL` | Opcional. Solo si la API está en otro dominio; por defecto se usa `/api/v1` del mismo dominio |
 
 ## Scripts
 
@@ -69,4 +69,5 @@ Versiones estables fijadas al iniciar el proyecto (9 de octubre de 2026):
 - **NestJS 11.2** en lugar de 12: NestJS 12 solo se distribuye como ES Modules, lo que complica Jest (exigido por la especificación) y el despliegue serverless. La línea 11 sigue con mantenimiento activo.
 - **TypeScript 6.0**: TypeScript 7 aún no es compatible con typescript-eslint ni con ts-jest.
 - **Prisma 7.10**: la etiqueta `latest` de npm apunta a una versión candidata de Prisma 8; se usa la última estable.
-- **Despliegue de NestJS** con el soporte nativo de Vercel en lugar de un handler manual en `api/` (detalles en `docs/despliegue.md`).
+- **Un solo proyecto de Vercel con Services** en lugar de dos proyectos separados: frontend y backend comparten dominio. Decisión del equipo.
+- **Entrypoint del backend** `apps/backend/server.js`, que carga la salida de `tsc` en lugar de un handler manual en `api/`: el compilador de Vercel no emite los metadatos de decoradores que NestJS necesita (detalles en `docs/despliegue.md`).

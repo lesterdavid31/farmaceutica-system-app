@@ -9,7 +9,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "build": "prisma generate && nest build",
-    "start": "node dist/main",
+    "start": "node dist/servidor",
     "start:dev": "nest start --watch",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

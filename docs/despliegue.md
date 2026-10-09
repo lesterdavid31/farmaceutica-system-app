@@ -1,68 +1,77 @@
 # Manual de despliegue
 
-El sistema se despliega como **dos proyectos de Vercel** conectados al mismo repositorio de GitHub, más una base de datos PostgreSQL en **Neon**.
+El sistema se despliega como **un solo proyecto de Vercel con Services** (beta), conectado al repositorio de GitHub, más una base de datos PostgreSQL en **Neon**. Frontend y backend se construyen por separado pero se publican juntos en el mismo dominio:
 
-| Componente              | Servicio | Root directory  | URL de ejemplo                     |
-| ----------------------- | -------- | --------------- | ---------------------------------- |
-| Backend (NestJS)        | Vercel   | `apps/backend`  | `https://farmacias-api.vercel.app` |
-| Frontend (React + Vite) | Vercel   | `apps/frontend` | `https://farmacias-web.vercel.app` |
-| Base de datos           | Neon     | —               | —                                  |
+| Ruta pública  | Servicio   | Carpeta         | Framework |
+| ------------- | ---------- | --------------- | --------- |
+| `/api/*`      | `backend`  | `apps/backend`  | NestJS    |
+| todo lo demás | `frontend` | `apps/frontend` | Vite      |
 
-## 1. Subir el repositorio a GitHub
+La configuración está en [`vercel.json`](../vercel.json) en la raíz del repositorio (documentación: <https://vercel.com/docs/services>).
 
-1. Crear un repositorio vacío en GitHub (sin README ni `.gitignore`).
-2. Desde la raíz del proyecto:
+Ventajas frente a dos proyectos separados: un solo dominio (el frontend llama a `/api/v1` sin CORS ni `VITE_API_URL`), variables de entorno compartidas y despliegues sincronizados de ambos servicios en producción y en vistas previas.
 
-   ```bash
-   git remote add origin https://github.com/<usuario>/<repositorio>.git
-   git push -u origin main
-   ```
+## 1. Base de datos en Neon
 
-## 2. Base de datos en Neon
-
-1. Crear un proyecto en [neon.tech](https://neon.tech) (región sugerida: `AWS us-east-1`, la misma región que las funciones de Vercel por defecto).
+1. Crear un proyecto en [neon.tech](https://neon.tech).
 2. En **Connect**, copiar dos cadenas de conexión:
    - **Pooled** (el host contiene `-pooler`): será `DATABASE_URL`. La usa la aplicación en tiempo de ejecución.
-   - **Directa** (desactivar _Connection pooling_): será `DIRECT_URL`. La usa la CLI de Prisma para las migraciones.
+   - **Directa** (la misma sin `-pooler`): será `DIRECT_URL`. La usa la CLI de Prisma para las migraciones.
 
-## 3. Proyecto del backend en Vercel
+## 2. Proyecto en Vercel
 
-1. En Vercel: **Add New → Project** e importar el repositorio.
-2. **Root Directory:** `apps/backend`. Vercel detecta el preset **NestJS** automáticamente; no cambiar los comandos de build ni el directorio de salida.
-3. Dejar activada la opción _Include files outside the root directory in the Build Step_ (necesaria para los npm workspaces).
-4. **Environment Variables:**
+1. **Add New → Project** e importar el repositorio de GitHub.
+2. Dejar el **Root Directory en la raíz** del repositorio: Vercel lee `vercel.json` y detecta los dos servicios.
+3. **Environment Variables** (Production y Preview):
 
-   | Variable       | Valor                                                                                                                   |
-   | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-   | `DATABASE_URL` | Cadena _pooled_ de Neon                                                                                                 |
-   | `DIRECT_URL`   | Cadena directa de Neon                                                                                                  |
-   | `CORS_ORIGINS` | URL del frontend, por ejemplo `https://farmacias-web.vercel.app` (varias separadas por coma). Se completa en el paso 5. |
+   | Variable       | Valor                   |
+   | -------------- | ----------------------- |
+   | `DATABASE_URL` | Cadena _pooled_ de Neon |
+   | `DIRECT_URL`   | Cadena directa de Neon  |
 
-5. **Deploy.** Al terminar, verificar `https://<backend>/api/v1/health` y la documentación en `https://<backend>/api/docs`.
+   No hacen falta `VITE_API_URL` ni `CORS_ORIGINS`: frontend y backend comparten dominio.
 
-### Cómo se ejecuta NestJS en Vercel
+4. **Deploy.** Verificar:
+   - `https://<proyecto>.vercel.app/`: pantalla _Estado del sistema_ con la API _En línea_ y la base de datos _Conectada_.
+   - `https://<proyecto>.vercel.app/api/v1/health`: respuesta JSON del backend.
+   - `https://<proyecto>.vercel.app/api/docs`: documentación Swagger.
 
-Se usa el **soporte nativo de NestJS** de Vercel (documentación vigente: <https://vercel.com/docs/frameworks/backend/nestjs>). Vercel detecta `src/main.ts`, lo compila y lo sirve como una sola función con _Fluid compute_, que reutiliza la instancia de la aplicación entre invocaciones. Por eso no hace falta un handler manual en `api/` ni un `vercel.json` con rewrites: cumplen el mismo objetivo que describía la especificación (inicializar una vez y reutilizar), con la configuración que Vercel recomienda hoy.
+### Variables con la CLI de Vercel (alternativa al panel)
 
-El cliente de Prisma se genera en `postinstall` (`prisma generate`) y en el script `build`.
+```bash
+npx vercel login
+npx vercel link                      # vincula la carpeta con el proyecto
+npx vercel env add DATABASE_URL production,preview --sensitive --value "<pooled>"
+npx vercel env add DIRECT_URL production,preview --sensitive --value "<directa>"
+npx vercel deploy --prod             # o un push a main
+```
 
-## 4. Proyecto del frontend en Vercel
+## Cómo se ejecuta NestJS en Vercel
 
-1. **Add New → Project**, importar el **mismo** repositorio otra vez.
-2. **Root Directory:** `apps/frontend`. Preset: **Vite**.
-3. **Environment Variables:** `VITE_API_URL` = URL del backend **sin** `/api/v1` ni barra final, por ejemplo `https://farmacias-api.vercel.app`.
-4. **Deploy.** `apps/frontend/vercel.json` reescribe todas las rutas a `index.html` (SPA).
+El servicio `backend` usa como entrypoint `apps/backend/server.js`, que solo carga `dist/servidor.js`, la salida de `nest build` (compilada con `tsc`).
 
-## 5. Cerrar el círculo (CORS)
+**Por qué no se usa `src/main.ts` directamente:** el builder de NestJS de Vercel transpila TypeScript con su propio compilador, que **no emite los metadatos de decoradores** (`emitDecoratorMetadata`). Sin ellos, la inyección de dependencias de NestJS falla en tiempo de ejecución: los controladores reciben `undefined` en lugar de sus servicios. Por eso el archivo de arranque se llama `src/servidor.ts` (Vercel no lo detecta) y Vercel empaqueta el JavaScript ya compilado.
 
-1. Copiar la URL de producción del frontend.
-2. En el proyecto del backend: **Settings → Environment Variables → `CORS_ORIGINS`** con esa URL.
-3. **Deployments → Redeploy** del backend.
-4. Abrir el frontend: la pantalla _Estado del sistema_ debe mostrar la API _En línea_ y la base de datos _Conectada_.
+**Regla para el código del backend:** en los DTOs, declarar siempre el tipo en `@ApiProperty({ type: ... })` cuando la propiedad sea un tipo literal o una unión, porque Swagger no puede inferirlo de forma confiable.
 
-> Las variables `VITE_*` se incrustan durante el build: si cambia `VITE_API_URL`, hay que volver a desplegar el frontend.
+El cliente de Prisma se genera en `postinstall` (`prisma generate`) y en el script `build`. La instancia de NestJS se reutiliza entre invocaciones gracias a _Fluid compute_.
 
-## 6. Migraciones de base de datos
+## Desarrollo local
+
+Opción habitual, cada app por separado (Vite redirige `/api` a `localhost:3000`):
+
+```bash
+npm run dev:backend
+npm run dev:frontend
+```
+
+Opción que replica el ruteo de producción con los dos servicios en `http://localhost:3000`:
+
+```bash
+npx vercel dev -L
+```
+
+## Migraciones de base de datos
 
 **Decisión:** las migraciones se ejecutan **manualmente** desde una máquina de desarrollo, no en el build de Vercel. Así los _preview deployments_ de cada rama no modifican la base de datos de producción y se controla el momento exacto de cada migración.
 
@@ -75,5 +84,6 @@ Para desarrollo local se usa `npm run prisma:migrate -w @farmacia/backend`, que 
 
 ## Limitaciones aceptadas
 
+- Vercel Services está en beta.
 - Arranque en frío de la función de Vercel y suspensión de Neon por inactividad: la primera petición después de un rato sin uso puede tardar unos segundos.
 - Sin tareas en segundo plano ni WebSockets. Los indicadores (por ejemplo, pedidos atrasados) se calculan al consultar.
