@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.vercel/
+*.log
+.env
+.env.*
+!.env.example
+apps/api/src/generated/
+.DS_Store

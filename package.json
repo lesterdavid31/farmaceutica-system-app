@@ -1,0 +1,33 @@
+{
+  "name": "sistema-farmaceutico",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de gestión para cadena de farmacias (monorepo)",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev:api": "npm run start:dev -w @farmacia/api",
+    "dev:web": "npm run dev -w @farmacia/web",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.9.9"
+  },
+  "allowScripts": {
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true,
+    "@parcel/watcher@2.6.0": true,
+    "unrs-resolver@1.12.2": true,
+    "@scarf/scarf": false
+  }
+}

@@ -1,0 +1,79 @@
+/*
+ * Tokens de diseño del sistema (ESPECIFICACION.md, sección 8.1).
+ * Todo color de la interfaz sale de aquí. No se usan los colores por defecto de Tailwind
+ * ni el tema zinc/slate de shadcn/ui.
+ */
+:root {
+  /* Paleta de marca */
+  --verde-botica: #1e5b4f;
+  --verde-botica-oscuro: #164539;
+  --salvia: #e6f0ec;
+  --fondo: #f5f7f6;
+  --superficie: #ffffff;
+  --texto: #1d2a26;
+  --texto-secundario: #5a6a65;
+  --borde: #d7dfdc;
+
+  /* Estados: siempre texto oscuro sobre su fondo claro */
+  --ambar: #9a5b06;
+  --ambar-fondo: #fbf0de;
+  --ladrillo: #a3271c;
+  --ladrillo-fondo: #fbe9e7;
+  --acero: #2e5a78;
+  --acero-fondo: #e7eef4;
+
+  /* Series de gráficas, en orden */
+  --serie-1: #1e5b4f;
+  --serie-2: #6f9d8f;
+  --serie-3: #2e5a78;
+  --serie-4: #a9b7b2;
+
+  /* Tipografía */
+  --fuente: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  --texto-meta: 13px;
+  --texto-denso: 14px;
+  --texto-cuerpo: 16px;
+  --texto-seccion: 20px;
+  --texto-pagina: 26px;
+
+  /* Forma */
+  --radio-chip: 4px;
+  --radio-control: 6px;
+  --radio-panel: 8px;
+  --sombra-flotante: 0 4px 16px rgba(29, 42, 38, 0.12);
+  --duracion-transicion: 150ms;
+
+  /* Variables de tema de shadcn/ui mapeadas a los tokens */
+  --background: var(--fondo);
+  --foreground: var(--texto);
+  --card: var(--superficie);
+  --card-foreground: var(--texto);
+  --popover: var(--superficie);
+  --popover-foreground: var(--texto);
+  --primary: var(--verde-botica);
+  --primary-foreground: #ffffff;
+  --secondary: var(--superficie);
+  --secondary-foreground: var(--texto);
+  --muted: var(--fondo);
+  --muted-foreground: var(--texto-secundario);
+  --accent: var(--salvia);
+  --accent-foreground: var(--verde-botica);
+  --destructive: var(--ladrillo);
+  --destructive-foreground: #ffffff;
+  --border: var(--borde);
+  --input: var(--borde);
+  --ring: var(--verde-botica);
+  --radius: var(--radio-panel);
+  --chart-1: var(--serie-1);
+  --chart-2: var(--serie-2);
+  --chart-3: var(--serie-3);
+  --chart-4: var(--serie-4);
+  --sidebar: var(--superficie);
+  --sidebar-foreground: var(--texto);
+  --sidebar-primary: var(--verde-botica);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--salvia);
+  --sidebar-accent-foreground: var(--verde-botica);
+  --sidebar-border: var(--borde);
+  --sidebar-ring: var(--verde-botica);
+}

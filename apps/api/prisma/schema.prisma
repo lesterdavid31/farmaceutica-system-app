@@ -1,0 +1,12 @@
+// Esquema de datos del sistema de farmacias.
+// Fase 0: solo la configuración base. El modelo completo se define en la fase 1.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
