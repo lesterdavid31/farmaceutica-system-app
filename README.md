@@ -8,8 +8,8 @@ Proyecto de examen privado del Área de Análisis y Desarrollo, Facultad de Inge
 
 ```
 apps/
-  api/   NestJS 11 + Prisma 7 (PostgreSQL en Neon)
-  web/   React 19 + Vite 8 + Tailwind CSS 4 + TanStack Query
+  backend/   NestJS 11 + Prisma 7 (PostgreSQL en Neon)
+  frontend/  React 19 + Vite 8 + Tailwind CSS 4 + TanStack Query
 docs/    Diagrama E-R, documentos RUP y manual de despliegue
 ```
 
@@ -24,24 +24,24 @@ Monorepo con npm workspaces.
 
 ```bash
 npm install
-cp apps/api/.env.example apps/api/.env   # completar DATABASE_URL y DIRECT_URL
-cp apps/web/.env.example apps/web/.env
+cp apps/backend/.env.example apps/backend/.env   # completar DATABASE_URL y DIRECT_URL
+cp apps/frontend/.env.example apps/frontend/.env
 
-npm run dev:api   # http://localhost:3000/api/v1  · Swagger en /api/docs
-npm run dev:web   # http://localhost:5173
+npm run dev:backend   # http://localhost:3000/api/v1  · Swagger en /api/docs
+npm run dev:frontend   # http://localhost:5173
 ```
 
 > npm 11 solo ejecuta los scripts de instalación aprobados en `allowScripts` (`package.json`). Prisma ya está aprobado; si `npm install` avisa de un paquete nuevo, revísalo con `npm install-scripts ls`.
 
 ## Variables de entorno
 
-| App | Variable       | Descripción                                                                                    |
-| --- | -------------- | ---------------------------------------------------------------------------------------------- |
-| api | `DATABASE_URL` | Conexión _pooled_ de Neon (tiempo de ejecución)                                                |
-| api | `DIRECT_URL`   | Conexión directa de Neon (migraciones de Prisma)                                               |
-| api | `CORS_ORIGINS` | Dominios del frontend permitidos, separados por coma. En desarrollo se agrega `localhost:5173` |
-| api | `PORT`         | Puerto local (3000 por defecto)                                                                |
-| web | `VITE_API_URL` | URL del backend, sin `/api/v1`                                                                 |
+| App      | Variable       | Descripción                                                                                    |
+| -------- | -------------- | ---------------------------------------------------------------------------------------------- |
+| backend  | `DATABASE_URL` | Conexión _pooled_ de Neon (tiempo de ejecución)                                                |
+| backend  | `DIRECT_URL`   | Conexión directa de Neon (migraciones de Prisma)                                               |
+| backend  | `CORS_ORIGINS` | Dominios del frontend permitidos, separados por coma. En desarrollo se agrega `localhost:5173` |
+| backend  | `PORT`         | Puerto local (3000 por defecto)                                                                |
+| frontend | `VITE_API_URL` | URL del backend, sin `/api/v1`                                                                 |
 
 ## Scripts
 

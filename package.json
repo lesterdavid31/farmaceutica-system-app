@@ -4,15 +4,15 @@
   "private": true,
   "description": "Sistema de gestión para cadena de farmacias (monorepo)",
   "workspaces": [
-    "apps/api",
-    "apps/web"
+    "apps/backend",
+    "apps/frontend"
   ],
   "engines": {
     "node": "24.x"
   },
   "scripts": {
-    "dev:api": "npm run start:dev -w @farmacia/api",
-    "dev:web": "npm run dev -w @farmacia/web",
+    "dev:backend": "npm run start:dev -w @farmacia/backend",
+    "dev:frontend": "npm run dev -w @farmacia/frontend",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspaces --if-present",

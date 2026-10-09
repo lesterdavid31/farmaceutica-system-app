@@ -256,8 +256,8 @@ Entidades mínimas (Claude Code puede agregar campos necesarios, pero no quitar)
 ```
 /
 ├── apps/
-│   ├── web/          # React + Vite
-│   └── api/          # NestJS + Prisma
+│   ├── frontend/     # React + Vite
+│   └── backend/      # NestJS + Prisma
 │       ├── prisma/   # schema.prisma, migraciones, seed.ts
 │       └── api/      # punto de entrada serverless para Vercel
 ├── docs/             # diagrama-er.md, documentos RUP, manual de despliegue
@@ -268,8 +268,8 @@ Entidades mínimas (Claude Code puede agregar campos necesarios, pero no quitar)
 ### 7.5 Despliegue
 
 - **Neon:** usar la cadena de conexión *pooled* (`DATABASE_URL`) para la aplicación y la conexión directa (`DIRECT_URL`) para las migraciones de Prisma.
-- **Backend en Vercel:** NestJS corre como función serverless. Crear un handler que inicialice la app una sola vez y la reutilice entre invocaciones (caché del servidor Express), más un `vercel.json` con un rewrite de todas las rutas hacia ese handler. Consulta la documentación actual de Vercel para NestJS antes de implementarlo. Root directory del proyecto: `apps/api`.
-- **Frontend en Vercel:** root directory `apps/web`, con un rewrite SPA a `index.html`. Variable `VITE_API_URL`.
+- **Backend en Vercel:** NestJS corre como función serverless. Crear un handler que inicialice la app una sola vez y la reutilice entre invocaciones (caché del servidor Express), más un `vercel.json` con un rewrite de todas las rutas hacia ese handler. Consulta la documentación actual de Vercel para NestJS antes de implementarlo. Root directory del proyecto: `apps/backend`.
+- **Frontend en Vercel:** root directory `apps/frontend`, con un rewrite SPA a `index.html`. Variable `VITE_API_URL`.
 - Configurar CORS en el backend para permitir solo el dominio del frontend (y `localhost` en desarrollo).
 - Las migraciones se ejecutan en el build del backend (`prisma migrate deploy`) o manualmente; documentar cuál se eligió.
 - Limitaciones aceptadas: arranques en frío de Vercel y suspensión de Neon por inactividad. Mantener las peticiones cortas; nada de tareas en segundo plano ni WebSockets. El indicador de pedidos atrasados se calcula al consultar, no con jobs programados.
@@ -298,7 +298,7 @@ UI en español, responsiva (el punto de venta y la bandeja de pedidos deben pode
 
 ### 8.1 Lineamientos de diseño visual
 
-> **Obligatorio.** El sistema debe verse como software profesional hecho para una farmacia, no como una plantilla genérica. Antes de construir la primera pantalla, implementa estos tokens en `apps/web/src/styles/tokens.css` y mapéalos a las variables de tema de shadcn/ui. **No uses el tema por defecto de shadcn** (grises zinc/slate) ni los colores sueltos de Tailwind (`bg-blue-500`, `text-green-600`, etc.) en los componentes: todo color sale de un token.
+> **Obligatorio.** El sistema debe verse como software profesional hecho para una farmacia, no como una plantilla genérica. Antes de construir la primera pantalla, implementa estos tokens en `apps/frontend/src/styles/tokens.css` y mapéalos a las variables de tema de shadcn/ui. **No uses el tema por defecto de shadcn** (grises zinc/slate) ni los colores sueltos de Tailwind (`bg-blue-500`, `text-green-600`, etc.) en los componentes: todo color sale de un token.
 
 #### Concepto
 

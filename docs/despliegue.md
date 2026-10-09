@@ -2,11 +2,11 @@
 
 El sistema se despliega como **dos proyectos de Vercel** conectados al mismo repositorio de GitHub, más una base de datos PostgreSQL en **Neon**.
 
-| Componente              | Servicio | Root directory | URL de ejemplo                     |
-| ----------------------- | -------- | -------------- | ---------------------------------- |
-| Backend (NestJS)        | Vercel   | `apps/api`     | `https://farmacias-api.vercel.app` |
-| Frontend (React + Vite) | Vercel   | `apps/web`     | `https://farmacias-web.vercel.app` |
-| Base de datos           | Neon     | —              | —                                  |
+| Componente              | Servicio | Root directory  | URL de ejemplo                     |
+| ----------------------- | -------- | --------------- | ---------------------------------- |
+| Backend (NestJS)        | Vercel   | `apps/backend`  | `https://farmacias-api.vercel.app` |
+| Frontend (React + Vite) | Vercel   | `apps/frontend` | `https://farmacias-web.vercel.app` |
+| Base de datos           | Neon     | —               | —                                  |
 
 ## 1. Subir el repositorio a GitHub
 
@@ -28,7 +28,7 @@ El sistema se despliega como **dos proyectos de Vercel** conectados al mismo rep
 ## 3. Proyecto del backend en Vercel
 
 1. En Vercel: **Add New → Project** e importar el repositorio.
-2. **Root Directory:** `apps/api`. Vercel detecta el preset **NestJS** automáticamente; no cambiar los comandos de build ni el directorio de salida.
+2. **Root Directory:** `apps/backend`. Vercel detecta el preset **NestJS** automáticamente; no cambiar los comandos de build ni el directorio de salida.
 3. Dejar activada la opción _Include files outside the root directory in the Build Step_ (necesaria para los npm workspaces).
 4. **Environment Variables:**
 
@@ -49,9 +49,9 @@ El cliente de Prisma se genera en `postinstall` (`prisma generate`) y en el scri
 ## 4. Proyecto del frontend en Vercel
 
 1. **Add New → Project**, importar el **mismo** repositorio otra vez.
-2. **Root Directory:** `apps/web`. Preset: **Vite**.
+2. **Root Directory:** `apps/frontend`. Preset: **Vite**.
 3. **Environment Variables:** `VITE_API_URL` = URL del backend **sin** `/api/v1` ni barra final, por ejemplo `https://farmacias-api.vercel.app`.
-4. **Deploy.** `apps/web/vercel.json` reescribe todas las rutas a `index.html` (SPA).
+4. **Deploy.** `apps/frontend/vercel.json` reescribe todas las rutas a `index.html` (SPA).
 
 ## 5. Cerrar el círculo (CORS)
 
@@ -67,11 +67,11 @@ El cliente de Prisma se genera en `postinstall` (`prisma generate`) y en el scri
 **Decisión:** las migraciones se ejecutan **manualmente** desde una máquina de desarrollo, no en el build de Vercel. Así los _preview deployments_ de cada rama no modifican la base de datos de producción y se controla el momento exacto de cada migración.
 
 ```bash
-# con DIRECT_URL de producción en apps/api/.env
-npm run prisma:deploy -w @farmacia/api
+# con DIRECT_URL de producción en apps/backend/.env
+npm run prisma:deploy -w @farmacia/backend
 ```
 
-Para desarrollo local se usa `npm run prisma:migrate -w @farmacia/api`, que crea nuevas migraciones.
+Para desarrollo local se usa `npm run prisma:migrate -w @farmacia/backend`, que crea nuevas migraciones.
 
 ## Limitaciones aceptadas
 

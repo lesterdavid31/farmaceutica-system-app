@@ -1,7 +1,7 @@
 node_modules
 dist
 coverage
-apps/api/src/generated
-apps/api/prisma/migrations
+apps/backend/src/generated
+apps/backend/prisma/migrations
 package-lock.json
 ESPECIFICACION.md

@@ -1,5 +1,5 @@
 {
-  "name": "@farmacia/api",
+  "name": "@farmacia/backend",
   "version": "0.1.0",
   "private": true,
   "description": "API REST del sistema de farmacias (NestJS + Prisma)",
