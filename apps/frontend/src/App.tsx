@@ -1,26 +1,76 @@
-import { createBrowserRouter, Outlet, RouterProvider } from 'react-router';
-import { Logo } from '@/components/Logo';
-import { EstadoSistema } from '@/pages/EstadoSistema';
+import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
+import { createBrowserRouter, Link, RouterProvider } from 'react-router';
+import { RutaAutenticada, SoloRoles } from '@/auth/RutaProtegida';
+import { Cargando, Pagina } from '@/components/pagina';
+import { AppLayout } from '@/layout/AppLayout';
+import type { Rol } from '@/lib/dominio';
+import { Inicio } from '@/pages/Inicio';
+import { Login } from '@/pages/Login';
 
-function Layout() {
+/** Las pantallas se descargan al visitarlas, para que el login y el inicio carguen rápido. */
+function diferida<M>(cargar: () => Promise<M>, nombre: keyof M) {
+  return lazy(async () => ({ default: (await cargar())[nombre] as ComponentType }));
+}
+
+const Bitacora = diferida(() => import('@/pages/auditoria/Bitacora'), 'Bitacora');
+const Categorias = diferida(() => import('@/pages/admin/Categorias'), 'Categorias');
+const Configuracion = diferida(() => import('@/pages/admin/Configuracion'), 'Configuracion');
+const Productos = diferida(() => import('@/pages/admin/Productos'), 'Productos');
+const Proveedores = diferida(() => import('@/pages/admin/Proveedores'), 'Proveedores');
+const Ubicaciones = diferida(() => import('@/pages/admin/Ubicaciones'), 'Ubicaciones');
+const Usuarios = diferida(() => import('@/pages/admin/Usuarios'), 'Usuarios');
+const EstadoSistema = diferida(() => import('@/pages/EstadoSistema'), 'EstadoSistema');
+
+const ADMINISTRACION: Rol[] = ['ADMIN', 'AUDITOR'];
+
+const solo = (roles: Rol[], pantalla: ReactNode) => (
+  <SoloRoles roles={roles}>
+    <Suspense
+      fallback={
+        <Pagina>
+          <Cargando texto="Cargando la pantalla..." />
+        </Pagina>
+      }
+    >
+      {pantalla}
+    </Suspense>
+  </SoloRoles>
+);
+
+function NoEncontrada() {
   return (
-    <div className="min-h-screen bg-fondo">
-      <header className="border-b border-borde bg-superficie">
-        <div className="mx-auto flex h-14 max-w-[1440px] items-center px-4 sm:px-8">
-          <Logo />
-        </div>
-      </header>
-      <main>
-        <Outlet />
-      </main>
-    </div>
+    <Pagina>
+      <h1 className="m-0 text-pagina font-semibold">Página no encontrada</h1>
+      <p className="mt-2 text-cuerpo text-texto-secundario">
+        La dirección no existe.{' '}
+        <Link to="/" className="text-verde-botica">
+          Volver al inicio
+        </Link>
+      </p>
+    </Pagina>
   );
 }
 
 const router = createBrowserRouter([
+  { path: '/login', element: <Login /> },
   {
-    element: <Layout />,
-    children: [{ index: true, element: <EstadoSistema /> }],
+    element: (
+      <RutaAutenticada>
+        <AppLayout />
+      </RutaAutenticada>
+    ),
+    children: [
+      { index: true, element: <Inicio /> },
+      { path: 'auditoria/bitacora', element: solo(ADMINISTRACION, <Bitacora />) },
+      { path: 'admin/usuarios', element: solo(ADMINISTRACION, <Usuarios />) },
+      { path: 'admin/ubicaciones', element: solo(ADMINISTRACION, <Ubicaciones />) },
+      { path: 'admin/productos', element: solo(ADMINISTRACION, <Productos />) },
+      { path: 'admin/categorias', element: solo(ADMINISTRACION, <Categorias />) },
+      { path: 'admin/proveedores', element: solo(ADMINISTRACION, <Proveedores />) },
+      { path: 'admin/configuracion', element: solo(ADMINISTRACION, <Configuracion />) },
+      { path: 'admin/estado', element: solo(['ADMIN'], <EstadoSistema />) },
+      { path: '*', element: <NoEncontrada /> },
+    ],
   },
 ]);
 

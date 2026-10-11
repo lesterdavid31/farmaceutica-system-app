@@ -1,0 +1,136 @@
+// Tipos y etiquetas del dominio. La interfaz muestra siempre texto legible, nunca el valor del enum.
+
+export type Rol = 'ADMIN' | 'GERENTE' | 'CAJERO' | 'OPERADOR_CALL_CENTER' | 'AUDITOR';
+export type TipoUbicacion = 'BODEGA_CENTRAL' | 'FARMACIA_CC' | 'STAND_GASOLINERA';
+
+export const ROLES: Record<Rol, string> = {
+  ADMIN: 'Administrador',
+  GERENTE: 'Gerente',
+  CAJERO: 'Cajero',
+  OPERADOR_CALL_CENTER: 'Operador de call center',
+  AUDITOR: 'Auditor',
+};
+
+export const TIPOS_UBICACION: Record<TipoUbicacion, string> = {
+  BODEGA_CENTRAL: 'Bodega central',
+  FARMACIA_CC: 'Farmacia en centro comercial',
+  STAND_GASOLINERA: 'Stand en gasolinera',
+};
+
+/** Roles que ven todas las ubicaciones; GERENTE y CAJERO solo la suya. */
+export const ROLES_GLOBALES: Rol[] = ['ADMIN', 'AUDITOR', 'OPERADOR_CALL_CENTER'];
+
+export const ACCIONES_BITACORA: Record<string, string> = {
+  CREAR: 'Crear',
+  ACTUALIZAR: 'Actualizar',
+  ELIMINAR: 'Eliminar',
+  DESACTIVAR: 'Desactivar',
+  LOGIN: 'Inicio de sesión',
+  LOGIN_FALLIDO: 'Inicio de sesión fallido',
+};
+
+export function etiquetaAccion(accion: string) {
+  return (
+    ACCIONES_BITACORA[accion] ??
+    accion.charAt(0) + accion.slice(1).toLowerCase().replaceAll('_', ' ')
+  );
+}
+
+export interface UbicacionResumen {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: TipoUbicacion;
+}
+
+export interface Perfil {
+  id: string;
+  nombre: string;
+  email: string;
+  rol: Rol;
+  ubicacion: UbicacionResumen | null;
+}
+
+export interface Ubicacion extends UbicacionResumen {
+  direccion: string;
+  municipioId: string;
+  municipio: { id: string; nombre: string; departamento: { id: string; nombre: string } };
+  latitud: string;
+  longitud: string;
+  telefono: string | null;
+  activa: boolean;
+}
+
+export interface Departamento {
+  id: string;
+  codigo: string;
+  nombre: string;
+  municipios: { id: string; nombre: string }[];
+}
+
+export interface Usuario {
+  id: string;
+  nombre: string;
+  email: string;
+  rol: Rol;
+  activo: boolean;
+  ubicacionId: string | null;
+  ubicacion: UbicacionResumen | null;
+  createdAt: string;
+}
+
+export interface Categoria {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  activa: boolean;
+  _count?: { productos: number };
+}
+
+export interface Proveedor {
+  id: string;
+  nombre: string;
+  nit: string;
+  telefono: string | null;
+  email: string | null;
+  direccion: string | null;
+  contacto: string | null;
+  activo: boolean;
+}
+
+export interface Producto {
+  id: string;
+  sku: string;
+  nombre: string;
+  principioActivo: string;
+  presentacion: string;
+  categoriaId: string;
+  categoria: { id: string; nombre: string };
+  precioVenta: string;
+  requiereReceta: boolean;
+  activo: boolean;
+}
+
+export interface ParametroConfiguracion {
+  clave: string;
+  etiqueta: string;
+  descripcion: string;
+  valor: number;
+  porDefecto: number;
+  minimo: number;
+  maximo: number;
+  decimales: number;
+  unidad: string;
+}
+
+export interface RegistroBitacora {
+  id: string;
+  accion: string;
+  entidad: string;
+  entidadId: string | null;
+  datosAntes: unknown;
+  datosDespues: unknown;
+  ip: string | null;
+  createdAt: string;
+  usuario: { id: string; nombre: string; email: string; rol: Rol } | null;
+}

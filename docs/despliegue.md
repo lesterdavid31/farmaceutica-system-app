@@ -24,10 +24,13 @@ Ventajas frente a dos proyectos separados: un solo dominio (el frontend llama a 
 2. Dejar el **Root Directory en la raíz** del repositorio: Vercel lee `vercel.json` y detecta los dos servicios.
 3. **Environment Variables** (Production y Preview):
 
-   | Variable       | Valor                   |
-   | -------------- | ----------------------- |
-   | `DATABASE_URL` | Cadena _pooled_ de Neon |
-   | `DIRECT_URL`   | Cadena directa de Neon  |
+   | Variable       | Valor                                                                   |
+   | -------------- | ----------------------------------------------------------------------- |
+   | `DATABASE_URL` | Cadena _pooled_ de Neon                                                 |
+   | `DIRECT_URL`   | Cadena directa de Neon                                                  |
+   | `JWT_SECRET`   | Secreto aleatorio de al menos 32 caracteres, distinto del de desarrollo |
+
+   Generar el secreto con `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`. Si cambia, todas las sesiones abiertas se cierran.
 
    No hacen falta `VITE_API_URL` ni `CORS_ORIGINS`: frontend y backend comparten dominio.
 
@@ -43,6 +46,7 @@ npx vercel login
 npx vercel link                      # vincula la carpeta con el proyecto
 npx vercel env add DATABASE_URL production,preview --sensitive --value "<pooled>"
 npx vercel env add DIRECT_URL production,preview --sensitive --value "<directa>"
+npx vercel env add JWT_SECRET production,preview --sensitive --value "<secreto>"
 npx vercel deploy --prod             # o un push a main
 ```
 
@@ -78,7 +82,10 @@ npx vercel dev -L
 ```bash
 # con DIRECT_URL de producción en apps/backend/.env
 npm run prisma:deploy -w @farmacia/backend
+npm run seed -w @farmacia/backend   # idempotente: crea o actualiza los datos de demostración
 ```
+
+La migración inicial agrega, además de las tablas, el `CHECK` de existencias no negativas y los triggers que hacen inmutables el kardex, los movimientos de caja, la bitácora y los historiales.
 
 Para desarrollo local se usa `npm run prisma:migrate -w @farmacia/backend`, que crea nuevas migraciones.
 

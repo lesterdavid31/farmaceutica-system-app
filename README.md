@@ -24,10 +24,13 @@ Monorepo con npm workspaces.
 
 ```bash
 npm install
-cp apps/backend/.env.example apps/backend/.env   # completar DATABASE_URL y DIRECT_URL
+cp apps/backend/.env.example apps/backend/.env   # completar DATABASE_URL, DIRECT_URL y JWT_SECRET
 cp apps/frontend/.env.example apps/frontend/.env
 
-npm run dev:backend   # http://localhost:3000/api/v1  · Swagger en /api/docs
+npm run prisma:deploy -w @farmacia/backend   # aplica las migraciones
+npm run seed -w @farmacia/backend            # carga los datos de demostración (idempotente)
+
+npm run dev:backend    # http://localhost:3000/api/v1  · Swagger en /api/docs
 npm run dev:frontend   # http://localhost:5173
 ```
 
@@ -35,27 +38,64 @@ npm run dev:frontend   # http://localhost:5173
 
 ## Variables de entorno
 
-| App      | Variable       | Descripción                                                                                   |
-| -------- | -------------- | --------------------------------------------------------------------------------------------- |
-| backend  | `DATABASE_URL` | Conexión _pooled_ de Neon (tiempo de ejecución)                                               |
-| backend  | `DIRECT_URL`   | Conexión directa de Neon (migraciones de Prisma)                                              |
-| backend  | `CORS_ORIGINS` | Opcional. Dominios extra permitidos por CORS. En desarrollo se agrega `localhost:5173`        |
-| backend  | `PORT`         | Puerto local (3000 por defecto)                                                               |
-| frontend | `VITE_API_URL` | Opcional. Solo si la API está en otro dominio; por defecto se usa `/api/v1` del mismo dominio |
+| App      | Variable         | Descripción                                                                                   |
+| -------- | ---------------- | --------------------------------------------------------------------------------------------- |
+| backend  | `DATABASE_URL`   | Conexión _pooled_ de Neon (tiempo de ejecución)                                               |
+| backend  | `DIRECT_URL`     | Conexión directa de Neon (migraciones de Prisma)                                              |
+| backend  | `CORS_ORIGINS`   | Opcional. Dominios extra permitidos por CORS. En desarrollo se agrega `localhost:5173`        |
+| backend  | `PORT`           | Puerto local (3000 por defecto)                                                               |
+| backend  | `JWT_SECRET`     | Secreto para firmar los tokens (mínimo 32 caracteres aleatorios)                              |
+| backend  | `JWT_EXPIRES_IN` | Vigencia del token de acceso (`8h` por defecto)                                               |
+| frontend | `VITE_API_URL`   | Opcional. Solo si la API está en otro dominio; por defecto se usa `/api/v1` del mismo dominio |
 
 ## Scripts
 
-| Comando             | Qué hace                            |
-| ------------------- | ----------------------------------- |
-| `npm run lint`      | ESLint en ambas apps                |
-| `npm run typecheck` | Verificación de tipos de TypeScript |
-| `npm test`          | Pruebas unitarias (Jest) de la API  |
-| `npm run build`     | Build de producción de ambas apps   |
-| `npm run format`    | Formatea con Prettier               |
+| Comando                                 | Qué hace                                                                                |
+| --------------------------------------- | --------------------------------------------------------------------------------------- |
+| `npm run lint`                          | ESLint en ambas apps                                                                    |
+| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                     |
+| `npm test`                              | Pruebas unitarias (Jest) de la API                                                      |
+| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (login por rol y permisos) |
+| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                             |
+| `npm run build`                         | Build de producción de ambas apps                                                       |
+| `npm run format`                        | Formatea con Prettier                                                                   |
 
 ## Usuarios de prueba
 
-Se crearán con el seed en la fase 1.
+Todos usan la contraseña **`Farmacia2026!`**.
+
+| Correo                          | Rol                     | Ubicación                       |
+| ------------------------------- | ----------------------- | ------------------------------- |
+| `admin@farmacia.gt`             | Administrador           | Todas                           |
+| `auditor@farmacia.gt`           | Auditor (solo lectura)  | Todas                           |
+| `operador@farmacia.gt`          | Operador de call center | Todas (solo lectura de stock)   |
+| `gerente.bodega@farmacia.gt`    | Gerente                 | Bodega Central                  |
+| `gerente.xela@farmacia.gt`      | Gerente                 | Farmacia Interplaza Xela        |
+| `cajero.xela@farmacia.gt`       | Cajero                  | Farmacia Interplaza Xela        |
+| `gerente.escuintla@farmacia.gt` | Gerente                 | Farmacia Plaza Palmeras         |
+| `cajero.escuintla@farmacia.gt`  | Cajero                  | Farmacia Plaza Palmeras         |
+| `gerente.huehue@farmacia.gt`    | Gerente                 | Farmacia Pradera Huehuetenango  |
+| `cajero.huehue@farmacia.gt`     | Cajero                  | Farmacia Pradera Huehuetenango  |
+| `gerente.coban@farmacia.gt`     | Gerente                 | Farmacia Plaza Magdalena        |
+| `cajero.coban@farmacia.gt`      | Cajero                  | Farmacia Plaza Magdalena        |
+| `gerente.peten@farmacia.gt`     | Gerente                 | Farmacia Metro Plaza Mundo Maya |
+| `cajero.peten@farmacia.gt`      | Cajero                  | Farmacia Metro Plaza Mundo Maya |
+| `gerente.chimal@farmacia.gt`    | Gerente                 | Stand Gasolinera Chimaltenango  |
+| `cajero.chimal@farmacia.gt`     | Cajero                  | Stand Gasolinera Chimaltenango  |
+| `gerente.zacapa@farmacia.gt`    | Gerente                 | Stand Gasolinera Zacapa         |
+| `cajero.zacapa@farmacia.gt`     | Cajero                  | Stand Gasolinera Zacapa         |
+| `gerente.reu@farmacia.gt`       | Gerente                 | Stand Gasolinera Retalhuleu     |
+| `cajero.reu@farmacia.gt`        | Cajero                  | Stand Gasolinera Retalhuleu     |
+
+## Seguridad y auditoría
+
+- Los permisos se aplican en el backend con guards globales: JWT → rol → solo lectura del auditor. GERENTE y CAJERO quedan limitados a su ubicación. El frontend solo oculta opciones.
+- Cada petición vuelve a consultar al usuario: si se desactiva o cambia de rol, aplica de inmediato aunque su token siga vigente.
+- Login limitado a 5 intentos por minuto por IP (en memoria de cada instancia).
+- Toda escritura exitosa queda en la bitácora con usuario, acción, entidad, datos antes y después, fecha e IP; también los inicios de sesión y los intentos fallidos. Nunca se guardan contraseñas.
+- La base de datos impide editar o borrar el kardex, los movimientos de caja, la bitácora y los historiales (triggers), y que una existencia quede negativa (CHECK).
+- Usuarios, ubicaciones, productos, categorías y proveedores no se borran: se desactivan, para conservar su historial.
+- Los montos `DECIMAL` llegan desde la API como texto (por ejemplo `"25.5"`) para no perder precisión.
 
 ## Despliegue
 
