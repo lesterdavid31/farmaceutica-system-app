@@ -50,15 +50,15 @@ npm run dev:frontend   # http://localhost:5173
 
 ## Scripts
 
-| Comando                                 | Qué hace                                                                                |
-| --------------------------------------- | --------------------------------------------------------------------------------------- |
-| `npm run lint`                          | ESLint en ambas apps                                                                    |
-| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                     |
-| `npm test`                              | Pruebas unitarias (Jest) de la API                                                      |
-| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (login por rol y permisos) |
-| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                             |
-| `npm run build`                         | Build de producción de ambas apps                                                       |
-| `npm run format`                        | Formatea con Prettier                                                                   |
+| Comando                                 | Qué hace                                                                                        |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `npm run lint`                          | ESLint en ambas apps                                                                            |
+| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                             |
+| `npm test`                              | Pruebas unitarias (Jest) de la API                                                              |
+| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario y traslados) |
+| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                     |
+| `npm run build`                         | Build de producción de ambas apps                                                               |
+| `npm run format`                        | Formatea con Prettier                                                                           |
 
 ## Usuarios de prueba
 
@@ -105,6 +105,15 @@ Todos usan la contraseña **`Farmacia2026!`**.
 - Solo la bodega central registra compras a proveedores; las sucursales se abastecen con traslados.
 - El seed carga 3 compras de la bodega (con lotes vencidos, por vencer y de vencimiento lejano), el inventario inicial de apertura de cada sucursal como ajuste con motivo y el stock mínimo de los productos de mayor rotación. Cada sucursal carece de algunos productos para demostrar la sugerencia de traslado del call center. La primera carga tarda unos 3 minutos.
 - Las pruebas e2e de inventario corren dentro de transacciones que se revierten, porque el kardex es inmutable: no dejan datos en la base.
+
+## Traslados
+
+- Ciclo de vida: `SOLICITADO → APROBADO → EN_TRANSITO → RECIBIDO`, o `CANCELADO` antes de despachar. Cada cambio guarda quién lo hizo y cuándo; el detalle muestra ese historial.
+- **Solicita** el administrador o un gerente, si el traslado sale de su ubicación o llega a ella. **Aprueba y despacha** el gerente de origen (o el administrador); **recibe** el gerente de destino; **cancela** cualquiera de los dos gerentes. La bodega central no recibe traslados.
+- Al **despachar** se descuenta del origen por FEFO, sin lotes vencidos, con un movimiento `TRASLADO_SALIDA` por lote; un producto puede repartirse en varios lotes. Si falta existencia vigente, no se despacha nada y se informan todos los faltantes.
+- Al **recibir** se ingresan en el destino los mismos lotes como `TRASLADO_ENTRADA`. Si llegó menos, el faltante se registra después como `AJUSTE` con el motivo, así el kardex muestra lo enviado y la diferencia por separado. No se acepta recibir más de lo despachado.
+- Desde **Alertas → Bajo stock mínimo** se puede iniciar la solicitud con el producto y la cantidad sugerida.
+- El seed crea un traslado en cada estado (uno recibido con una diferencia). Las pruebas e2e del ciclo completo corren en transacciones revertidas; como las secuencias de PostgreSQL no se revierten, cada corrida consume números de traslado.
 
 ## Despliegue
 

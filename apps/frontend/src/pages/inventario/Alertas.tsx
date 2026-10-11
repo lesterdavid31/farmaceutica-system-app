@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router';
 import { useFiltroUbicacion } from '@/auth/filtro-ubicacion';
 import { tieneRol, useUsuario } from '@/auth/sesion';
 import { EtiquetaLote } from '@/components/EtiquetaLote';
@@ -14,9 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { api, query } from '@/lib/api';
-import { useMutacion } from '@/lib/consultas';
-import type { Alertas as RespuestaAlertas, ExistenciaAlerta } from '@/lib/dominio';
+import { api, query, type Pagina as PaginaApi } from '@/lib/api';
+import { useCatalogo, useMutacion } from '@/lib/consultas';
+import type { Alertas as RespuestaAlertas, ExistenciaAlerta, Ubicacion } from '@/lib/dominio';
+import type { PrecargaTraslado } from '@/pages/traslados/NuevoTraslado';
 import { formatearFecha, formatearMoneda } from '@/lib/formato';
 
 function Seccion({
@@ -56,6 +58,14 @@ export function Alertas() {
   const usuario = useUsuario();
   const { ubicacionId } = useFiltroUbicacion();
   const puedeGestionar = tieneRol(usuario, ['ADMIN', 'GERENTE']);
+  const navegar = useNavigate();
+  // La bodega no recibe traslados (compra a proveedores): sus faltantes no ofrecen traslado.
+  const ubicaciones = useCatalogo<PaginaApi<Ubicacion>>(
+    'ubicaciones',
+    '/ubicaciones?limit=100&activa=true',
+  );
+  const recibeTraslados = (id: string) =>
+    ubicaciones.data?.data.some((u) => u.id === id && u.tipo !== 'BODEGA_CENTRAL') ?? false;
   const consulta = useQuery({
     queryKey: ['inventario', 'alertas', ubicacionId],
     queryFn: () => api.get<RespuestaAlertas>(`/inventario/alertas${query({ ubicacionId })}`),
@@ -225,6 +235,11 @@ export function Alertas() {
                     <TableHead numerico>Vigente</TableHead>
                     <TableHead numerico>Mínimo</TableHead>
                     <TableHead numerico>Sugerido</TableHead>
+                    {puedeGestionar && (
+                      <TableHead>
+                        <span className="sr-only">Acciones</span>
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -247,6 +262,26 @@ export function Alertas() {
                       <TableCell numerico className="font-semibold">
                         {b.sugerido}
                       </TableCell>
+                      {puedeGestionar && (
+                        <TableCell className="text-right">
+                          {recibeTraslados(b.ubicacion.id) && (
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                navegar('/traslados/nuevo', {
+                                  state: {
+                                    destinoId: b.ubicacion.id,
+                                    producto: { ...b.producto, presentacion: '' },
+                                    cantidad: b.sugerido,
+                                  } satisfies PrecargaTraslado,
+                                })
+                              }
+                            >
+                              Solicitar traslado
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

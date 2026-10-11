@@ -26,6 +26,12 @@ const Alertas = diferida(() => import('@/pages/inventario/Alertas'), 'Alertas');
 const Compras = diferida(() => import('@/pages/compras/Compras'), 'Compras');
 const DetalleCompra = diferida(() => import('@/pages/compras/Compras'), 'DetalleCompra');
 const NuevaCompra = diferida(() => import('@/pages/compras/NuevaCompra'), 'NuevaCompra');
+const Traslados = diferida(() => import('@/pages/traslados/Traslados'), 'Traslados');
+const NuevoTraslado = diferida(() => import('@/pages/traslados/NuevoTraslado'), 'NuevoTraslado');
+const DetalleTraslado = diferida(
+  () => import('@/pages/traslados/DetalleTraslado'),
+  'DetalleTraslado',
+);
 
 const TODOS: Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
 const ADMINISTRACION: Rol[] = ['ADMIN', 'AUDITOR'];
@@ -75,6 +81,9 @@ const router = createBrowserRouter([
       { path: 'compras', element: solo(SUPERVISION, <Compras />) },
       { path: 'compras/nueva', element: solo(['ADMIN', 'GERENTE'], <NuevaCompra />) },
       { path: 'compras/:id', element: solo(SUPERVISION, <DetalleCompra />) },
+      { path: 'traslados', element: solo(SUPERVISION, <Traslados />) },
+      { path: 'traslados/nuevo', element: solo(['ADMIN', 'GERENTE'], <NuevoTraslado />) },
+      { path: 'traslados/:id', element: solo(SUPERVISION, <DetalleTraslado />) },
       { path: 'auditoria/bitacora', element: solo(ADMINISTRACION, <Bitacora />) },
       { path: 'admin/usuarios', element: solo(ADMINISTRACION, <Usuarios />) },
       { path: 'admin/ubicaciones', element: solo(ADMINISTRACION, <Ubicaciones />) },

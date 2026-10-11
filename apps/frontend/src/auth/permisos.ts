@@ -11,3 +11,9 @@ export function usePuedeComprar() {
   const usuario = useUsuario();
   return usuario.rol === 'ADMIN' || esGerenteBodega(usuario);
 }
+
+/** Solicitan traslados el administrador y los gerentes (hacia o desde su ubicación). */
+export function usePuedeSolicitarTraslado() {
+  const usuario = useUsuario();
+  return usuario.rol === 'ADMIN' || usuario.rol === 'GERENTE';
+}

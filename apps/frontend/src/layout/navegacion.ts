@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowLeftRight,
   BellRing,
   Boxes,
   Building2,
@@ -51,6 +52,7 @@ export const NAVEGACION: SeccionNavegacion[] = [
         roles: SUPERVISION,
         visible: (u) => u.rol !== 'GERENTE' || esGerenteBodega(u),
       },
+      { ruta: '/traslados', etiqueta: 'Traslados', icono: ArrowLeftRight, roles: SUPERVISION },
     ],
   },
   {

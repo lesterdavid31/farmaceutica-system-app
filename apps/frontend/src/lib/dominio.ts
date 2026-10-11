@@ -27,6 +27,11 @@ export const ACCIONES_BITACORA: Record<string, string> = {
   DESACTIVAR: 'Desactivar',
   LOGIN: 'Inicio de sesión',
   LOGIN_FALLIDO: 'Inicio de sesión fallido',
+  SOLICITAR: 'Solicitar',
+  APROBAR: 'Aprobar',
+  DESPACHAR: 'Despachar',
+  RECIBIR: 'Recibir',
+  CANCELAR: 'Cancelar',
 };
 
 export function etiquetaAccion(accion: string) {
@@ -275,4 +280,63 @@ export interface CompraDetalle extends Omit<CompraResumen, '_count' | 'proveedor
     producto: { id: string; sku: string; nombre: string; presentacion: string };
     lote: { id: string; numeroLote: string; fechaVencimiento: string };
   }[];
+}
+
+// ─── Traslados ────────────────────────────────────────────────────────────────
+
+export type EstadoTraslado = 'SOLICITADO' | 'APROBADO' | 'EN_TRANSITO' | 'RECIBIDO' | 'CANCELADO';
+export type MotivoTraslado = 'REABASTECIMIENTO' | 'PEDIDO_CLIENTE';
+export type AccionTraslado = 'aprobar' | 'despachar' | 'recibir' | 'cancelar';
+
+export const ESTADOS_TRASLADO: Record<EstadoTraslado, string> = {
+  SOLICITADO: 'Solicitado',
+  APROBADO: 'Aprobado',
+  EN_TRANSITO: 'En tránsito',
+  RECIBIDO: 'Recibido',
+  CANCELADO: 'Cancelado',
+};
+
+export const MOTIVOS_TRASLADO: Record<MotivoTraslado, string> = {
+  REABASTECIMIENTO: 'Reabastecimiento',
+  PEDIDO_CLIENTE: 'Pedido de cliente',
+};
+
+export interface TrasladoResumen {
+  id: string;
+  numero: number;
+  estado: EstadoTraslado;
+  motivo: MotivoTraslado;
+  origen: UbicacionResumen;
+  destino: UbicacionResumen;
+  solicitadoPor: { id: string; nombre: string };
+  fechaSolicitud: string;
+  fechaDespacho: string | null;
+  fechaRecepcion: string | null;
+  productos: number;
+  unidades: number;
+}
+
+export interface DetalleTraslado {
+  id: string;
+  productoId: string;
+  cantidadSolicitada: number;
+  cantidadEnviada: number | null;
+  cantidadRecibida: number | null;
+  /** Existencia vigente del producto en el origen; solo mientras no se despacha. */
+  disponibleOrigen?: number;
+  producto: { id: string; sku: string; nombre: string; presentacion: string };
+  lote: { id: string; numeroLote: string; fechaVencimiento: string } | null;
+}
+
+export interface TrasladoDetalle extends Omit<TrasladoResumen, 'productos' | 'unidades'> {
+  observaciones: string | null;
+  motivoCancelacion: string | null;
+  pedido: { id: string; numero: number } | null;
+  detalles: DetalleTraslado[];
+  historial: {
+    estado: EstadoTraslado;
+    fecha: string;
+    usuario: { id: string; nombre: string } | null;
+  }[];
+  acciones: AccionTraslado[];
 }
