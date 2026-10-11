@@ -18,6 +18,7 @@ import {
   UBICACIONES,
   USUARIOS_GLOBALES,
 } from './seed/datos-base';
+import { sembrarInventario } from './seed/inventario';
 
 config({ quiet: true });
 
@@ -145,6 +146,7 @@ async function main() {
   await usuarios(ubicacionIds);
   await catalogo();
   await configuracion();
+  await sembrarInventario(prisma);
 
   const conteo = {
     departamentos: await prisma.departamento.count(),
