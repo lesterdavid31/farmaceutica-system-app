@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { BitacoraService } from '../bitacora/bitacora.service';
 import { ReglaNegocioException } from '../common/errores';
 import { PrismaService } from '../prisma/prisma.service';
 import { CLAVES_PARAMETROS, ClaveParametro, PARAMETROS, validarParametro } from './parametros';
@@ -17,7 +18,10 @@ export interface ParametroConfiguracion {
 
 @Injectable()
 export class ConfiguracionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly bitacora: BitacoraService,
+  ) {}
 
   /** Todos los parámetros con su valor actual (o el valor por defecto si no se ha guardado). */
   async listar(): Promise<ParametroConfiguracion[]> {
@@ -36,8 +40,11 @@ export class ConfiguracionService {
     return Number.isFinite(valor) ? valor : PARAMETROS[clave].porDefecto;
   }
 
-  /** Actualiza uno o varios parámetros. Valida todo antes de guardar nada. */
-  async actualizar(valores: Record<string, number>) {
+  /**
+   * Actualiza uno o varios parámetros. Valida todo antes de guardar nada y registra en la
+   * bitácora los valores anteriores y nuevos, en la misma transacción.
+   */
+  async actualizar(valores: Record<string, unknown>, usuarioId: string, ip: string | null) {
     const entradas = Object.entries(valores);
     if (entradas.length === 0) {
       throw new ReglaNegocioException('No se envió ningún parámetro para actualizar');
@@ -48,7 +55,10 @@ export class ConfiguracionService {
         errores.push(`El parámetro ${clave} no existe`);
         continue;
       }
-      const error = validarParametro(clave as ClaveParametro, valor);
+      const error =
+        typeof valor === 'number'
+          ? validarParametro(clave as ClaveParametro, valor)
+          : `${PARAMETROS[clave as ClaveParametro].etiqueta}: ingrese un número`;
       if (error) {
         errores.push(error);
       }
@@ -56,9 +66,16 @@ export class ConfiguracionService {
     if (errores.length > 0) {
       throw new ReglaNegocioException('Revise los valores de la configuración', errores);
     }
-    await this.prisma.$transaction(
-      entradas.map(([clave, valor]) =>
-        this.prisma.configuracion.upsert({
+
+    const valoresActuales = (lista: ParametroConfiguracion[]) =>
+      Object.fromEntries(
+        lista.filter((p) => p.clave in valores).map((p) => [p.clave, p.valor] as const),
+      );
+    const antes = valoresActuales(await this.listar());
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const [clave, valor] of entradas) {
+        await tx.configuracion.upsert({
           where: { clave },
           update: { valor: String(valor) },
           create: {
@@ -66,9 +83,20 @@ export class ConfiguracionService {
             valor: String(valor),
             descripcion: PARAMETROS[clave as ClaveParametro].descripcion,
           },
-        }),
-      ),
-    );
+        });
+      }
+      await this.bitacora.registrar(
+        {
+          usuarioId,
+          accion: 'ACTUALIZAR',
+          entidad: 'Configuracion',
+          datosAntes: antes,
+          datosDespues: Object.fromEntries(entradas),
+          ip,
+        },
+        tx,
+      );
+    });
     return this.listar();
   }
 

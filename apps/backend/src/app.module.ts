@@ -18,7 +18,10 @@ import { UsuariosModule } from './usuarios/usuarios.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     // Límite básico por IP; el login aplica uno más estricto con @Throttle.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 120 }],
+      errorMessage: 'Demasiados intentos. Espere un minuto e intente de nuevo.',
+    }),
     PrismaModule,
     BitacoraModule,
     AuthModule,

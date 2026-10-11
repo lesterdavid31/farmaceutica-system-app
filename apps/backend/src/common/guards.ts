@@ -1,4 +1,11 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  HttpException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
@@ -25,6 +32,17 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   override canActivate(ctx: ExecutionContext) {
     return esPublico(this.reflector, ctx) ? true : super.canActivate(ctx);
+  }
+
+  /** Sin token, token vencido o inválido: mensaje en español en lugar del "Unauthorized" de passport. */
+  override handleRequest<T>(error: unknown, usuario: T | false): T {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+    if (error || !usuario) {
+      throw new UnauthorizedException('Inicie sesión para continuar');
+    }
+    return usuario;
   }
 }
 

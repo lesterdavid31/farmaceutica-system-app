@@ -12,11 +12,13 @@
     "start": "node dist/servidor",
     "start:dev": "nest start --watch",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p test/tsconfig.json && tsc -p prisma/tsconfig.json",
     "test": "jest",
     "test:cov": "jest --coverage",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:deploy": "prisma migrate deploy",
+    "seed": "tsx prisma/seed.ts",
+    "test:e2e": "jest --config test/jest-e2e.json --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "11.2.7",
