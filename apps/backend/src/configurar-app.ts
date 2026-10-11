@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export const PREFIJO_API = 'api/v1';
@@ -19,6 +20,8 @@ export function origenesPermitidos(valor: string | undefined, entorno: string | 
 }
 
 export function configurarApp(app: INestApplication) {
+  // Detrás del proxy de Vercel: req.ip toma la IP real del cliente (bitácora y límite de login).
+  (app as NestExpressApplication).set('trust proxy', true);
   app.setGlobalPrefix(PREFIJO_API);
   app.enableCors({
     origin: origenesPermitidos(process.env.CORS_ORIGINS, process.env.NODE_ENV),
