@@ -19,6 +19,7 @@ import {
   USUARIOS_GLOBALES,
 } from './seed/datos-base';
 import { sembrarInventario } from './seed/inventario';
+import { sembrarTraslados } from './seed/traslados';
 
 config({ quiet: true });
 
@@ -147,6 +148,7 @@ async function main() {
   await catalogo();
   await configuracion();
   await sembrarInventario(prisma);
+  await sembrarTraslados(prisma);
 
   const conteo = {
     departamentos: await prisma.departamento.count(),

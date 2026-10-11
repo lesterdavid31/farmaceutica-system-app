@@ -9,6 +9,7 @@ import { CatalogoModule } from './catalogo/catalogo.module';
 import { FiltroErrores } from './common/errores';
 import { ComprasModule } from './compras/compras.module';
 import { InventarioModule } from './inventario/inventario.module';
+import { TrasladosModule } from './traslados/traslados.module';
 import { AuditorSoloLecturaGuard, JwtAuthGuard, RolesGuard } from './common/guards';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { HealthModule } from './health/health.module';
@@ -34,6 +35,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     CatalogoModule,
     InventarioModule,
     ComprasModule,
+    TrasladosModule,
   ],
   providers: [
     // Orden de los guards globales: autenticación → rol → solo lectura del auditor.

@@ -170,6 +170,29 @@ export class MotorInventarioService {
     return resultado;
   }
 
+  /**
+   * Unidades vigentes (no vencidas) por producto en una ubicación, sin bloquear filas. Sirve para
+   * avisar de todos los faltantes juntos antes de descontar; el descuento vuelve a verificar.
+   */
+  async vigentePorProducto(
+    db: Tx,
+    ubicacionId: string,
+    productoIds: string[],
+  ): Promise<Map<string, number>> {
+    if (productoIds.length === 0) {
+      return new Map();
+    }
+    const filas = await db.$queryRaw<{ producto_id: string; cantidad: number }[]>`
+      SELECT l.producto_id, SUM(e.cantidad)::int AS cantidad
+      FROM existencia e
+      JOIN lote l ON l.id = e.lote_id
+      WHERE e.ubicacion_id = ${ubicacionId}::uuid
+        AND l.producto_id IN (${Prisma.join(productoIds.map((id) => Prisma.sql`${id}::uuid`))})
+        AND l.fecha_vencimiento >= ${hoyGuatemala()}::date
+      GROUP BY l.producto_id`;
+    return new Map(filas.map((f) => [f.producto_id, f.cantidad]));
+  }
+
   private movimiento(
     tx: Tx,
     datos: (Ingreso | SalidaLote) & { cantidad: number; costoUnitario: Prisma.Decimal | number },

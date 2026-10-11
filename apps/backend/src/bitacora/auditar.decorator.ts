@@ -5,7 +5,7 @@ export const CLAVE_SIN_BITACORA = 'sin-bitacora';
 
 /** Delegados de Prisma de los que se puede leer el estado anterior de un registro. */
 export type ModeloAuditable =
-  'usuario' | 'ubicacion' | 'categoria' | 'producto' | 'proveedor' | 'configuracion';
+  'usuario' | 'ubicacion' | 'categoria' | 'producto' | 'proveedor' | 'configuracion' | 'traslado';
 
 export interface OpcionesAuditoria {
   /** Nombre legible de la entidad que se guarda en la bitácora, por ejemplo "Usuario". */
