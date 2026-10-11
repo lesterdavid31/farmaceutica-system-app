@@ -1,5 +1,11 @@
-// Esquema de datos del sistema de farmacias.
-// Fase 0: solo la configuración base. El modelo completo se define en la fase 1.
+// Esquema de datos del sistema de gestión para la cadena de farmacias (ESPECIFICACION.md, sección 6).
+//
+// Convenciones:
+// - Tablas y columnas en español y snake_case en la base de datos (@@map / @map); camelCase en el código.
+// - Todas las tablas llevan id (UUID), created_at y updated_at, salvo las inmutables
+//   (movimiento_inventario, movimiento_caja, bitacora e historiales), que solo llevan created_at.
+// - Montos en DECIMAL(12,2); nunca coma flotante para dinero (RN-28).
+// - El CHECK (cantidad >= 0) de existencia se agrega en la migración SQL (RN-01).
 
 generator client {
   provider     = "prisma-client"
@@ -9,4 +15,844 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ─── Enumeraciones ────────────────────────────────────────────────────────────
+
+enum TipoUbicacion {
+  BODEGA_CENTRAL
+  FARMACIA_CC
+  STAND_GASOLINERA
+
+  @@map("tipo_ubicacion")
+}
+
+enum Rol {
+  ADMIN
+  GERENTE
+  CAJERO
+  OPERADOR_CALL_CENTER
+  AUDITOR
+
+  @@map("rol")
+}
+
+enum Puesto {
+  GERENTE
+  CAJERO
+  REPARTIDOR
+  BODEGUERO
+  OPERADOR
+  OTRO
+
+  @@map("puesto")
+}
+
+enum TipoMovimientoInventario {
+  COMPRA
+  VENTA
+  ANULACION_VENTA
+  TRASLADO_SALIDA
+  TRASLADO_ENTRADA
+  AJUSTE
+  BAJA_VENCIMIENTO
+
+  @@map("tipo_movimiento_inventario")
+}
+
+enum EstadoTraslado {
+  SOLICITADO
+  APROBADO
+  EN_TRANSITO
+  RECIBIDO
+  CANCELADO
+
+  @@map("estado_traslado")
+}
+
+enum MotivoTraslado {
+  REABASTECIMIENTO
+  PEDIDO_CLIENTE
+
+  @@map("motivo_traslado")
+}
+
+enum EstadoTurnoCaja {
+  ABIERTO
+  CERRADO
+
+  @@map("estado_turno_caja")
+}
+
+enum TipoMovimientoCaja {
+  VENTA
+  COBRO_CONTRA_ENTREGA
+  GASTO
+  RETIRO
+  DEPOSITO
+  ANULACION
+
+  @@map("tipo_movimiento_caja")
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  CONTRA_ENTREGA
+
+  @@map("metodo_pago")
+}
+
+enum CanalVenta {
+  MOSTRADOR
+  CALL_CENTER
+
+  @@map("canal_venta")
+}
+
+enum EstadoVenta {
+  COMPLETADA
+  ANULADA
+
+  @@map("estado_venta")
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  EN_PREPARACION
+  ASIGNADO
+  EN_CAMINO
+  ENTREGADO
+  CANCELADO
+
+  @@map("estado_pedido")
+}
+
+enum EstadoPlanilla {
+  BORRADOR
+  CERRADA
+
+  @@map("estado_planilla")
+}
+
+// ─── Geografía ────────────────────────────────────────────────────────────────
+
+model Departamento {
+  id         String      @id @default(uuid()) @db.Uuid
+  codigo     String      @unique @db.VarChar(2)
+  nombre     String      @unique
+  municipios Municipio[]
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  @@map("departamento")
+}
+
+model Municipio {
+  id                 String             @id @default(uuid()) @db.Uuid
+  nombre             String
+  departamentoId     String             @map("departamento_id") @db.Uuid
+  departamento       Departamento       @relation(fields: [departamentoId], references: [id])
+  ubicaciones        Ubicacion[]
+  direccionesCliente DireccionCliente[]
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  @@unique([departamentoId, nombre])
+  @@map("municipio")
+}
+
+// ─── Ubicaciones, usuarios y empleados ────────────────────────────────────────
+
+model Ubicacion {
+  id          String        @id @default(uuid()) @db.Uuid
+  codigo      String        @unique @db.VarChar(20)
+  nombre      String
+  tipo        TipoUbicacion
+  direccion   String
+  municipioId String        @map("municipio_id") @db.Uuid
+  municipio   Municipio     @relation(fields: [municipioId], references: [id])
+  latitud     Decimal       @db.Decimal(9, 6)
+  longitud    Decimal       @db.Decimal(9, 6)
+  telefono    String?       @db.VarChar(20)
+  activa      Boolean       @default(true)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  usuarios               Usuario[]
+  empleados              Empleado[]
+  existencias            Existencia[]
+  stockMinimos           StockMinimo[]
+  movimientosInventario  MovimientoInventario[]
+  compras                Compra[]
+  trasladosOrigen        Traslado[]                 @relation("TrasladoOrigen")
+  trasladosDestino       Traslado[]                 @relation("TrasladoDestino")
+  turnosCaja             TurnoCaja[]
+  ventas                 Venta[]
+  pedidos                Pedido[]
+  planillas              Planilla[]
+  activos                ActivoFijo[]
+  historialActivoOrigen  HistorialUbicacionActivo[] @relation("HistorialActivoOrigen")
+  historialActivoDestino HistorialUbicacionActivo[] @relation("HistorialActivoDestino")
+
+  @@index([tipo])
+  @@map("ubicacion")
+}
+
+model Usuario {
+  id           String     @id @default(uuid()) @db.Uuid
+  nombre       String
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  rol          Rol
+  /// Nulo para ADMIN, AUDITOR y OPERADOR_CALL_CENTER (alcance global).
+  ubicacionId  String?    @map("ubicacion_id") @db.Uuid
+  ubicacion    Ubicacion? @relation(fields: [ubicacionId], references: [id])
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  empleado              Empleado?
+  movimientosInventario MovimientoInventario[]
+  compras               Compra[]
+  trasladosSolicitados  Traslado[]                 @relation("TrasladoSolicitadoPor")
+  trasladosAprobados    Traslado[]                 @relation("TrasladoAprobadoPor")
+  trasladosDespachados  Traslado[]                 @relation("TrasladoDespachadoPor")
+  trasladosRecibidos    Traslado[]                 @relation("TrasladoRecibidoPor")
+  trasladosCancelados   Traslado[]                 @relation("TrasladoCanceladoPor")
+  turnosCaja            TurnoCaja[]
+  movimientosCaja       MovimientoCaja[]
+  ventas                Venta[]                    @relation("VentaUsuario")
+  ventasAnuladas        Venta[]                    @relation("VentaAnuladaPor")
+  pedidosOperados       Pedido[]
+  historialPedidos      HistorialPedido[]
+  planillasCerradas     Planilla[]
+  historialActivos      HistorialUbicacionActivo[]
+  bitacora              Bitacora[]
+
+  @@index([rol])
+  @@index([ubicacionId])
+  @@map("usuario")
+}
+
+model Empleado {
+  id           String    @id @default(uuid()) @db.Uuid
+  nombres      String
+  apellidos    String
+  dpi          String    @unique @db.VarChar(13)
+  puesto       Puesto
+  salarioBase  Decimal   @map("salario_base") @db.Decimal(12, 2)
+  ubicacionId  String    @map("ubicacion_id") @db.Uuid
+  ubicacion    Ubicacion @relation(fields: [ubicacionId], references: [id])
+  fechaIngreso DateTime  @map("fecha_ingreso") @db.Date
+  activo       Boolean   @default(true)
+  usuarioId    String?   @unique @map("usuario_id") @db.Uuid
+  usuario      Usuario?  @relation(fields: [usuarioId], references: [id])
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  entregas         Entrega[]
+  detallesPlanilla DetallePlanilla[]
+
+  @@index([ubicacionId, puesto])
+  @@map("empleado")
+}
+
+// ─── Catálogo ─────────────────────────────────────────────────────────────────
+
+model Categoria {
+  id          String     @id @default(uuid()) @db.Uuid
+  nombre      String     @unique
+  descripcion String?
+  activa      Boolean    @default(true)
+  productos   Producto[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@map("categoria")
+}
+
+model Proveedor {
+  id        String   @id @default(uuid()) @db.Uuid
+  nombre    String
+  nit       String   @unique @db.VarChar(20)
+  telefono  String?  @db.VarChar(20)
+  email     String?
+  direccion String?
+  contacto  String?
+  activo    Boolean  @default(true)
+  lotes     Lote[]
+  compras   Compra[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("proveedor")
+}
+
+model Producto {
+  id              String    @id @default(uuid()) @db.Uuid
+  sku             String    @unique @db.VarChar(30)
+  nombre          String
+  principioActivo String    @map("principio_activo")
+  presentacion    String
+  categoriaId     String    @map("categoria_id") @db.Uuid
+  categoria       Categoria @relation(fields: [categoriaId], references: [id])
+  precioVenta     Decimal   @map("precio_venta") @db.Decimal(12, 2)
+  /// Solo informativo: muestra un aviso en el punto de venta, no bloquea la venta.
+  requiereReceta  Boolean   @default(false) @map("requiere_receta")
+  activo          Boolean   @default(true)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  lotes            Lote[]
+  stockMinimos     StockMinimo[]
+  detallesCompra   DetalleCompra[]
+  detallesTraslado DetalleTraslado[]
+  detallesVenta    DetalleVenta[]
+  detallesPedido   DetallePedido[]
+
+  @@index([nombre])
+  @@index([principioActivo])
+  @@index([categoriaId])
+  @@map("producto")
+}
+
+// ─── Inventario ───────────────────────────────────────────────────────────────
+
+model Lote {
+  id               String     @id @default(uuid()) @db.Uuid
+  productoId       String     @map("producto_id") @db.Uuid
+  producto         Producto   @relation(fields: [productoId], references: [id])
+  numeroLote       String     @map("numero_lote") @db.VarChar(40)
+  fechaVencimiento DateTime   @map("fecha_vencimiento") @db.Date
+  costoUnitario    Decimal    @map("costo_unitario") @db.Decimal(12, 2)
+  proveedorId      String?    @map("proveedor_id") @db.Uuid
+  proveedor        Proveedor? @relation(fields: [proveedorId], references: [id])
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  existencias           Existencia[]
+  movimientosInventario MovimientoInventario[]
+  detallesCompra        DetalleCompra[]
+  detallesTraslado      DetalleTraslado[]
+  detallesVenta         DetalleVenta[]
+
+  @@unique([productoId, numeroLote])
+  @@index([productoId, fechaVencimiento])
+  @@map("lote")
+}
+
+/// Existencia por (ubicación, lote). Nunca negativa: CHECK (cantidad >= 0) en la migración.
+model Existencia {
+  id          String    @id @default(uuid()) @db.Uuid
+  ubicacionId String    @map("ubicacion_id") @db.Uuid
+  ubicacion   Ubicacion @relation(fields: [ubicacionId], references: [id])
+  loteId      String    @map("lote_id") @db.Uuid
+  lote        Lote      @relation(fields: [loteId], references: [id])
+  cantidad    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([ubicacionId, loteId])
+  @@index([ubicacionId])
+  @@map("existencia")
+}
+
+model StockMinimo {
+  id             String    @id @default(uuid()) @db.Uuid
+  ubicacionId    String    @map("ubicacion_id") @db.Uuid
+  ubicacion      Ubicacion @relation(fields: [ubicacionId], references: [id])
+  productoId     String    @map("producto_id") @db.Uuid
+  producto       Producto  @relation(fields: [productoId], references: [id])
+  cantidadMinima Int       @map("cantidad_minima")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([ubicacionId, productoId])
+  @@map("stock_minimo")
+}
+
+/// Kardex. Inmutable: no se edita ni se borra; las correcciones son movimientos AJUSTE con motivo.
+model MovimientoInventario {
+  id             String                   @id @default(uuid()) @db.Uuid
+  tipo           TipoMovimientoInventario
+  ubicacionId    String                   @map("ubicacion_id") @db.Uuid
+  ubicacion      Ubicacion                @relation(fields: [ubicacionId], references: [id])
+  loteId         String                   @map("lote_id") @db.Uuid
+  lote           Lote                     @relation(fields: [loteId], references: [id])
+  /// Con signo: positivo entra, negativo sale.
+  cantidad       Int
+  costoUnitario  Decimal                  @map("costo_unitario") @db.Decimal(12, 2)
+  referenciaTipo String?                  @map("referencia_tipo") @db.VarChar(30)
+  referenciaId   String?                  @map("referencia_id") @db.Uuid
+  motivo         String?
+  usuarioId      String                   @map("usuario_id") @db.Uuid
+  usuario        Usuario                  @relation(fields: [usuarioId], references: [id])
+  createdAt      DateTime                 @default(now()) @map("created_at")
+
+  @@index([ubicacionId, loteId, createdAt])
+  @@index([createdAt])
+  @@index([referenciaTipo, referenciaId])
+  @@map("movimiento_inventario")
+}
+
+model Compra {
+  id              String          @id @default(uuid()) @db.Uuid
+  proveedorId     String          @map("proveedor_id") @db.Uuid
+  proveedor       Proveedor       @relation(fields: [proveedorId], references: [id])
+  ubicacionId     String          @map("ubicacion_id") @db.Uuid
+  ubicacion       Ubicacion       @relation(fields: [ubicacionId], references: [id])
+  numeroDocumento String?         @map("numero_documento") @db.VarChar(40)
+  fecha           DateTime        @db.Date
+  total           Decimal         @db.Decimal(12, 2)
+  observaciones   String?
+  usuarioId       String          @map("usuario_id") @db.Uuid
+  usuario         Usuario         @relation(fields: [usuarioId], references: [id])
+  detalles        DetalleCompra[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@index([ubicacionId, fecha])
+  @@map("compra")
+}
+
+model DetalleCompra {
+  id            String   @id @default(uuid()) @db.Uuid
+  compraId      String   @map("compra_id") @db.Uuid
+  compra        Compra   @relation(fields: [compraId], references: [id])
+  productoId    String   @map("producto_id") @db.Uuid
+  producto      Producto @relation(fields: [productoId], references: [id])
+  loteId        String   @map("lote_id") @db.Uuid
+  lote          Lote     @relation(fields: [loteId], references: [id])
+  cantidad      Int
+  costoUnitario Decimal  @map("costo_unitario") @db.Decimal(12, 2)
+  subtotal      Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([compraId])
+  @@map("detalle_compra")
+}
+
+// ─── Traslados ────────────────────────────────────────────────────────────────
+
+model Traslado {
+  id                String            @id @default(uuid()) @db.Uuid
+  numero            Int               @unique @default(autoincrement())
+  origenId          String            @map("origen_id") @db.Uuid
+  origen            Ubicacion         @relation("TrasladoOrigen", fields: [origenId], references: [id])
+  destinoId         String            @map("destino_id") @db.Uuid
+  destino           Ubicacion         @relation("TrasladoDestino", fields: [destinoId], references: [id])
+  estado            EstadoTraslado    @default(SOLICITADO)
+  motivo            MotivoTraslado
+  pedidoId          String?           @map("pedido_id") @db.Uuid
+  pedido            Pedido?           @relation(fields: [pedidoId], references: [id])
+  observaciones     String?
+  motivoCancelacion String?           @map("motivo_cancelacion")
+  solicitadoPorId   String            @map("solicitado_por") @db.Uuid
+  solicitadoPor     Usuario           @relation("TrasladoSolicitadoPor", fields: [solicitadoPorId], references: [id])
+  aprobadoPorId     String?           @map("aprobado_por") @db.Uuid
+  aprobadoPor       Usuario?          @relation("TrasladoAprobadoPor", fields: [aprobadoPorId], references: [id])
+  despachadoPorId   String?           @map("despachado_por") @db.Uuid
+  despachadoPor     Usuario?          @relation("TrasladoDespachadoPor", fields: [despachadoPorId], references: [id])
+  recibidoPorId     String?           @map("recibido_por") @db.Uuid
+  recibidoPor       Usuario?          @relation("TrasladoRecibidoPor", fields: [recibidoPorId], references: [id])
+  canceladoPorId    String?           @map("cancelado_por") @db.Uuid
+  canceladoPor      Usuario?          @relation("TrasladoCanceladoPor", fields: [canceladoPorId], references: [id])
+  fechaSolicitud    DateTime          @default(now()) @map("fecha_solicitud")
+  fechaAprobacion   DateTime?         @map("fecha_aprobacion")
+  fechaDespacho     DateTime?         @map("fecha_despacho")
+  fechaRecepcion    DateTime?         @map("fecha_recepcion")
+  fechaCancelacion  DateTime?         @map("fecha_cancelacion")
+  detalles          DetalleTraslado[]
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@index([estado])
+  @@index([origenId, createdAt])
+  @@index([destinoId, createdAt])
+  @@map("traslado")
+}
+
+/// Al solicitar se guarda producto y cantidad solicitada. Al despachar, los lotes se asignan
+/// por FEFO y un producto puede repartirse en varias filas, una por lote.
+model DetalleTraslado {
+  id                 String   @id @default(uuid()) @db.Uuid
+  trasladoId         String   @map("traslado_id") @db.Uuid
+  traslado           Traslado @relation(fields: [trasladoId], references: [id])
+  productoId         String   @map("producto_id") @db.Uuid
+  producto           Producto @relation(fields: [productoId], references: [id])
+  loteId             String?  @map("lote_id") @db.Uuid
+  lote               Lote?    @relation(fields: [loteId], references: [id])
+  cantidadSolicitada Int      @map("cantidad_solicitada")
+  cantidadEnviada    Int?     @map("cantidad_enviada")
+  cantidadRecibida   Int?     @map("cantidad_recibida")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([trasladoId])
+  @@map("detalle_traslado")
+}
+
+// ─── Clientes ─────────────────────────────────────────────────────────────────
+
+model Cliente {
+  id          String             @id @default(uuid()) @db.Uuid
+  nombre      String
+  telefono    String             @db.VarChar(20)
+  nit         String?            @db.VarChar(20)
+  email       String?
+  activo      Boolean            @default(true)
+  direcciones DireccionCliente[]
+  ventas      Venta[]
+  pedidos     Pedido[]
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([telefono])
+  @@index([nit])
+  @@map("cliente")
+}
+
+model DireccionCliente {
+  id          String     @id @default(uuid()) @db.Uuid
+  clienteId   String     @map("cliente_id") @db.Uuid
+  cliente     Cliente    @relation(fields: [clienteId], references: [id])
+  alias       String?    @db.VarChar(40)
+  direccion   String
+  referencia  String?
+  municipioId String?    @map("municipio_id") @db.Uuid
+  municipio   Municipio? @relation(fields: [municipioId], references: [id])
+  latitud     Decimal    @db.Decimal(9, 6)
+  longitud    Decimal    @db.Decimal(9, 6)
+  principal   Boolean    @default(false)
+  activa      Boolean    @default(true)
+  pedidos     Pedido[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([clienteId])
+  @@map("direccion_cliente")
+}
+
+// ─── Caja y ventas ────────────────────────────────────────────────────────────
+
+model TurnoCaja {
+  id               String           @id @default(uuid()) @db.Uuid
+  ubicacionId      String           @map("ubicacion_id") @db.Uuid
+  ubicacion        Ubicacion        @relation(fields: [ubicacionId], references: [id])
+  cajeroId         String           @map("cajero_id") @db.Uuid
+  cajero           Usuario          @relation(fields: [cajeroId], references: [id])
+  apertura         DateTime         @default(now())
+  cierre           DateTime?
+  montoInicial     Decimal          @map("monto_inicial") @db.Decimal(12, 2)
+  efectivoEsperado Decimal?         @map("efectivo_esperado") @db.Decimal(12, 2)
+  efectivoContado  Decimal?         @map("efectivo_contado") @db.Decimal(12, 2)
+  /// efectivo_contado − efectivo_esperado: positivo es sobrante, negativo es faltante.
+  diferencia       Decimal?         @db.Decimal(12, 2)
+  estado           EstadoTurnoCaja  @default(ABIERTO)
+  observaciones    String?
+  movimientos      MovimientoCaja[]
+  ventas           Venta[]
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([ubicacionId, estado])
+  @@index([cajeroId, estado])
+  @@index([apertura])
+  @@map("turno_caja")
+}
+
+/// Inmutable. El monto lleva signo: ingresos positivos; gastos, retiros y anulaciones negativos.
+model MovimientoCaja {
+  id           String             @id @default(uuid()) @db.Uuid
+  turnoCajaId  String             @map("turno_caja_id") @db.Uuid
+  turnoCaja    TurnoCaja          @relation(fields: [turnoCajaId], references: [id])
+  tipo         TipoMovimientoCaja
+  metodoPago   MetodoPago         @map("metodo_pago")
+  monto        Decimal            @db.Decimal(12, 2)
+  referenciaId String?            @map("referencia_id") @db.Uuid
+  descripcion  String?
+  usuarioId    String             @map("usuario_id") @db.Uuid
+  usuario      Usuario            @relation(fields: [usuarioId], references: [id])
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  @@index([turnoCajaId])
+  @@index([createdAt])
+  @@map("movimiento_caja")
+}
+
+model Venta {
+  id              String         @id @default(uuid()) @db.Uuid
+  numero          Int            @unique @default(autoincrement())
+  ubicacionId     String         @map("ubicacion_id") @db.Uuid
+  ubicacion       Ubicacion      @relation(fields: [ubicacionId], references: [id])
+  /// Nulo en ventas de call center generadas al pasar el pedido a EN_PREPARACION (RN-21).
+  turnoCajaId     String?        @map("turno_caja_id") @db.Uuid
+  turnoCaja       TurnoCaja?     @relation(fields: [turnoCajaId], references: [id])
+  clienteId       String?        @map("cliente_id") @db.Uuid
+  cliente         Cliente?       @relation(fields: [clienteId], references: [id])
+  nit             String         @default("CF") @db.VarChar(20)
+  canal           CanalVenta
+  pedidoId        String?        @unique @map("pedido_id") @db.Uuid
+  pedido          Pedido?        @relation(fields: [pedidoId], references: [id])
+  total           Decimal        @db.Decimal(12, 2)
+  estado          EstadoVenta    @default(COMPLETADA)
+  motivoAnulacion String?        @map("motivo_anulacion")
+  fechaAnulacion  DateTime?      @map("fecha_anulacion")
+  anuladaPorId    String?        @map("anulada_por") @db.Uuid
+  anuladaPor      Usuario?       @relation("VentaAnuladaPor", fields: [anuladaPorId], references: [id])
+  usuarioId       String         @map("usuario_id") @db.Uuid
+  usuario         Usuario        @relation("VentaUsuario", fields: [usuarioId], references: [id])
+  detalles        DetalleVenta[]
+  pagos           Pago[]
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@index([ubicacionId, createdAt])
+  @@index([turnoCajaId])
+  @@map("venta")
+}
+
+model DetalleVenta {
+  id             String   @id @default(uuid()) @db.Uuid
+  ventaId        String   @map("venta_id") @db.Uuid
+  venta          Venta    @relation(fields: [ventaId], references: [id])
+  productoId     String   @map("producto_id") @db.Uuid
+  producto       Producto @relation(fields: [productoId], references: [id])
+  loteId         String   @map("lote_id") @db.Uuid
+  lote           Lote     @relation(fields: [loteId], references: [id])
+  cantidad       Int
+  precioUnitario Decimal  @map("precio_unitario") @db.Decimal(12, 2)
+  subtotal       Decimal  @db.Decimal(12, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([ventaId])
+  @@map("detalle_venta")
+}
+
+model Pago {
+  id         String     @id @default(uuid()) @db.Uuid
+  ventaId    String     @map("venta_id") @db.Uuid
+  venta      Venta      @relation(fields: [ventaId], references: [id])
+  metodo     MetodoPago
+  monto      Decimal    @db.Decimal(12, 2)
+  referencia String?    @db.VarChar(60)
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@index([ventaId])
+  @@map("pago")
+}
+
+// ─── Pedidos y entregas ───────────────────────────────────────────────────────
+
+model Pedido {
+  id                  String            @id @default(uuid()) @db.Uuid
+  numero              Int               @unique @default(autoincrement())
+  clienteId           String            @map("cliente_id") @db.Uuid
+  cliente             Cliente           @relation(fields: [clienteId], references: [id])
+  direccionId         String            @map("direccion_id") @db.Uuid
+  direccion           DireccionCliente  @relation(fields: [direccionId], references: [id])
+  ubicacionDespachoId String            @map("ubicacion_despacho_id") @db.Uuid
+  ubicacionDespacho   Ubicacion         @relation(fields: [ubicacionDespachoId], references: [id])
+  operadorId          String            @map("operador_id") @db.Uuid
+  operador            Usuario           @relation(fields: [operadorId], references: [id])
+  estado              EstadoPedido      @default(PENDIENTE)
+  metodoPago          MetodoPago        @map("metodo_pago")
+  total               Decimal           @db.Decimal(12, 2)
+  tiempoEstimadoMin   Int               @map("tiempo_estimado_min")
+  distanciaKm         Decimal           @map("distancia_km") @db.Decimal(8, 2)
+  /// "google" o "estimado" (respaldo haversine).
+  fuenteEstimacion    String            @default("estimado") @map("fuente_estimacion") @db.VarChar(10)
+  fechaCompromiso     DateTime          @map("fecha_compromiso")
+  fechaEntrega        DateTime?         @map("fecha_entrega")
+  observaciones       String?
+  motivoCancelacion   String?           @map("motivo_cancelacion")
+  detalles            DetallePedido[]
+  historial           HistorialPedido[]
+  entrega             Entrega?
+  venta               Venta?
+  traslados           Traslado[]
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@index([estado, fechaCompromiso])
+  @@index([ubicacionDespachoId, estado])
+  @@index([clienteId])
+  @@map("pedido")
+}
+
+model DetallePedido {
+  id             String   @id @default(uuid()) @db.Uuid
+  pedidoId       String   @map("pedido_id") @db.Uuid
+  pedido         Pedido   @relation(fields: [pedidoId], references: [id])
+  productoId     String   @map("producto_id") @db.Uuid
+  producto       Producto @relation(fields: [productoId], references: [id])
+  cantidad       Int
+  precioUnitario Decimal  @map("precio_unitario") @db.Decimal(12, 2)
+  subtotal       Decimal  @db.Decimal(12, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([pedidoId])
+  @@map("detalle_pedido")
+}
+
+/// Cambios de estado del pedido. Inmutable.
+model HistorialPedido {
+  id             String        @id @default(uuid()) @db.Uuid
+  pedidoId       String        @map("pedido_id") @db.Uuid
+  pedido         Pedido        @relation(fields: [pedidoId], references: [id])
+  estadoAnterior EstadoPedido? @map("estado_anterior")
+  estadoNuevo    EstadoPedido  @map("estado_nuevo")
+  nota           String?
+  usuarioId      String        @map("usuario_id") @db.Uuid
+  usuario        Usuario       @relation(fields: [usuarioId], references: [id])
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  @@index([pedidoId, createdAt])
+  @@map("historial_pedido")
+}
+
+model Entrega {
+  id           String    @id @default(uuid()) @db.Uuid
+  pedidoId     String    @unique @map("pedido_id") @db.Uuid
+  pedido       Pedido    @relation(fields: [pedidoId], references: [id])
+  repartidorId String    @map("repartidor_id") @db.Uuid
+  repartidor   Empleado  @relation(fields: [repartidorId], references: [id])
+  horaSalida   DateTime? @map("hora_salida")
+  horaEntrega  DateTime? @map("hora_entrega")
+  notas        String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([repartidorId])
+  @@map("entrega")
+}
+
+// ─── Planilla ─────────────────────────────────────────────────────────────────
+
+model Planilla {
+  id           String            @id @default(uuid()) @db.Uuid
+  ubicacionId  String            @map("ubicacion_id") @db.Uuid
+  ubicacion    Ubicacion         @relation(fields: [ubicacionId], references: [id])
+  mes          Int               @db.SmallInt
+  anio         Int               @db.SmallInt
+  estado       EstadoPlanilla    @default(BORRADOR)
+  total        Decimal           @default(0) @db.Decimal(12, 2)
+  fechaCierre  DateTime?         @map("fecha_cierre")
+  cerradaPorId String?           @map("cerrada_por") @db.Uuid
+  cerradaPor   Usuario?          @relation(fields: [cerradaPorId], references: [id])
+  detalles     DetallePlanilla[]
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@unique([ubicacionId, anio, mes])
+  @@map("planilla")
+}
+
+model DetallePlanilla {
+  id              String   @id @default(uuid()) @db.Uuid
+  planillaId      String   @map("planilla_id") @db.Uuid
+  planilla        Planilla @relation(fields: [planillaId], references: [id])
+  empleadoId      String   @map("empleado_id") @db.Uuid
+  empleado        Empleado @relation(fields: [empleadoId], references: [id])
+  salarioBase     Decimal  @map("salario_base") @db.Decimal(12, 2)
+  bonificacion    Decimal  @db.Decimal(12, 2)
+  igss            Decimal  @db.Decimal(12, 2)
+  otrosDescuentos Decimal  @default(0) @map("otros_descuentos") @db.Decimal(12, 2)
+  liquido         Decimal  @db.Decimal(12, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([planillaId, empleadoId])
+  @@map("detalle_planilla")
+}
+
+// ─── Activos fijos ────────────────────────────────────────────────────────────
+
+model CategoriaActivo {
+  id            String       @id @default(uuid()) @db.Uuid
+  nombre        String       @unique
+  /// Vida útil por defecto de los activos de la categoría (RN-25).
+  vidaUtilMeses Int          @map("vida_util_meses")
+  activos       ActivoFijo[]
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@map("categoria_activo")
+}
+
+model ActivoFijo {
+  id                   String                     @id @default(uuid()) @db.Uuid
+  codigo               String                     @unique @db.VarChar(30)
+  descripcion          String
+  categoriaId          String                     @map("categoria_id") @db.Uuid
+  categoria            CategoriaActivo            @relation(fields: [categoriaId], references: [id])
+  ubicacionId          String                     @map("ubicacion_id") @db.Uuid
+  ubicacion            Ubicacion                  @relation(fields: [ubicacionId], references: [id])
+  fechaAdquisicion     DateTime                   @map("fecha_adquisicion") @db.Date
+  costo                Decimal                    @db.Decimal(12, 2)
+  valorResidual        Decimal                    @default(0) @map("valor_residual") @db.Decimal(12, 2)
+  vidaUtilMeses        Int                        @map("vida_util_meses")
+  activo               Boolean                    @default(true)
+  historialUbicaciones HistorialUbicacionActivo[]
+  createdAt            DateTime                   @default(now()) @map("created_at")
+  updatedAt            DateTime                   @updatedAt @map("updated_at")
+
+  @@index([ubicacionId])
+  @@index([categoriaId])
+  @@map("activo_fijo")
+}
+
+/// Traslados de un activo entre ubicaciones (RN-26). Inmutable.
+model HistorialUbicacionActivo {
+  id                 String     @id @default(uuid()) @db.Uuid
+  activoId           String     @map("activo_id") @db.Uuid
+  activo             ActivoFijo @relation(fields: [activoId], references: [id])
+  ubicacionOrigenId  String?    @map("ubicacion_origen_id") @db.Uuid
+  ubicacionOrigen    Ubicacion? @relation("HistorialActivoOrigen", fields: [ubicacionOrigenId], references: [id])
+  ubicacionDestinoId String     @map("ubicacion_destino_id") @db.Uuid
+  ubicacionDestino   Ubicacion  @relation("HistorialActivoDestino", fields: [ubicacionDestinoId], references: [id])
+  motivo             String?
+  usuarioId          String     @map("usuario_id") @db.Uuid
+  usuario            Usuario    @relation(fields: [usuarioId], references: [id])
+  createdAt          DateTime   @default(now()) @map("created_at")
+
+  @@index([activoId, createdAt])
+  @@map("historial_ubicacion_activo")
+}
+
+// ─── Configuración y auditoría ────────────────────────────────────────────────
+
+model Configuracion {
+  id          String   @id @default(uuid()) @db.Uuid
+  clave       String   @unique @db.VarChar(60)
+  valor       String
+  descripcion String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("configuracion")
+}
+
+/// Toda acción que crea, modifica o anula datos (RN-27). Inmutable.
+model Bitacora {
+  id           String   @id @default(uuid()) @db.Uuid
+  usuarioId    String?  @map("usuario_id") @db.Uuid
+  usuario      Usuario? @relation(fields: [usuarioId], references: [id])
+  accion       String   @db.VarChar(40)
+  entidad      String   @db.VarChar(60)
+  entidadId    String?  @map("entidad_id") @db.VarChar(60)
+  datosAntes   Json?    @map("datos_antes")
+  datosDespues Json?    @map("datos_despues")
+  ip           String?  @db.VarChar(60)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([entidad, entidadId])
+  @@index([usuarioId, createdAt])
+  @@map("bitacora")
 }
