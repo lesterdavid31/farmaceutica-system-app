@@ -7,6 +7,8 @@ import { BitacoraInterceptor } from './bitacora/bitacora.interceptor';
 import { BitacoraModule } from './bitacora/bitacora.module';
 import { CatalogoModule } from './catalogo/catalogo.module';
 import { FiltroErrores } from './common/errores';
+import { ComprasModule } from './compras/compras.module';
+import { InventarioModule } from './inventario/inventario.module';
 import { AuditorSoloLecturaGuard, JwtAuthGuard, RolesGuard } from './common/guards';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { HealthModule } from './health/health.module';
@@ -30,6 +32,8 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     UbicacionesModule,
     UsuariosModule,
     CatalogoModule,
+    InventarioModule,
+    ComprasModule,
   ],
   providers: [
     // Orden de los guards globales: autenticación → rol → solo lectura del auditor.
