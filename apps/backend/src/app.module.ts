@@ -5,10 +5,14 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { BitacoraInterceptor } from './bitacora/bitacora.interceptor';
 import { BitacoraModule } from './bitacora/bitacora.module';
+import { CatalogoModule } from './catalogo/catalogo.module';
 import { FiltroErrores } from './common/errores';
 import { AuditorSoloLecturaGuard, JwtAuthGuard, RolesGuard } from './common/guards';
+import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { UbicacionesModule } from './ubicaciones/ubicaciones.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -19,6 +23,10 @@ import { PrismaModule } from './prisma/prisma.module';
     BitacoraModule,
     AuthModule,
     HealthModule,
+    ConfiguracionModule,
+    UbicacionesModule,
+    UsuariosModule,
+    CatalogoModule,
   ],
   providers: [
     // Orden de los guards globales: autenticación → rol → solo lectura del auditor.
