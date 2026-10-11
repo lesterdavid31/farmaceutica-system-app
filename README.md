@@ -50,15 +50,15 @@ npm run dev:frontend   # http://localhost:5173
 
 ## Scripts
 
-| Comando                                 | Qué hace                                                                                        |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `npm run lint`                          | ESLint en ambas apps                                                                            |
-| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                             |
-| `npm test`                              | Pruebas unitarias (Jest) de la API                                                              |
-| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario y traslados) |
-| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                     |
-| `npm run build`                         | Build de producción de ambas apps                                                               |
-| `npm run format`                        | Formatea con Prettier                                                                           |
+| Comando                                 | Qué hace                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `npm run lint`                          | ESLint en ambas apps                                                                                          |
+| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                                           |
+| `npm test`                              | Pruebas unitarias (Jest) de la API                                                                            |
+| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario, traslados, caja y ventas) |
+| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                                   |
+| `npm run build`                         | Build de producción de ambas apps                                                                             |
+| `npm run format`                        | Formatea con Prettier                                                                                         |
 
 ## Usuarios de prueba
 
@@ -115,6 +115,17 @@ Todos usan la contraseña **`Farmacia2026!`**.
 - Desde **Alertas → Bajo stock mínimo** se puede iniciar la solicitud con el producto y la cantidad sugerida.
 - El seed crea un traslado en cada estado (uno recibido con una diferencia). Las pruebas e2e del ciclo completo corren en transacciones revertidas; como las secuencias de PostgreSQL no se revierten, cada corrida consume números de traslado.
 
+## Caja y ventas
+
+- **Turnos de caja:** solo el cajero abre caja, con el efectivo inicial de la gaveta. Tiene a lo sumo un turno abierto (índice único en la base) y sin turno abierto no puede vender. La bodega central no tiene caja.
+- **Movimientos manuales:** gastos menores y retiros sacan efectivo; los depósitos lo agregan (por ejemplo, sencillo para cambio). No se puede sacar más efectivo del que hay en la gaveta.
+- **Arqueo:** efectivo esperado = monto inicial + ventas en efectivo + depósitos − gastos − retiros − anulaciones en efectivo. Los pagos con tarjeta se informan pero no entran al arqueo. Al cerrar se guarda la diferencia con lo contado: positiva es sobrante y negativa, faltante.
+- **Punto de venta:** se busca por nombre, SKU o principio activo. Los lotes se asignan por FEFO sin vencidos y la venta guarda una línea por lote. Se cobra en efectivo, con tarjeta o con ambos; los pagos deben sumar exactamente el total, y la pantalla calcula el cambio. El NIT es opcional (`CF` por defecto). Los productos con receta muestran un aviso, pero no se bloquean.
+- **Anulación:** solo el gerente de la sucursal, con motivo y mientras el turno de la venta siga abierto. Devuelve cada lote con `ANULACION_VENTA` y registra la devolución en la caja como `ANULACION`, por método de pago. No se borra nada.
+- **Comprobante:** el comprobante interno imprimible está en `/ventas/:id/comprobante`; no es una factura FEL.
+- Cada operación de caja bloquea la fila del turno (`SELECT ... FOR UPDATE`), así que una venta y el cierre del mismo turno no se cruzan.
+- **Seed:** Escuintla tiene un turno cerrado con un faltante de Q15.50; Huehuetenango, uno cuadrado con una venta anulada; y Cobán, uno abierto con ventas. Xela no tiene turno, para probar la apertura.
+
 ## Despliegue
 
 Producción: <https://farmaceutica-system-app.vercel.app> (API en `/api/v1`, Swagger en `/api/docs`). Proyecto de Vercel `farmaceutica-system-app` conectado a GitHub: cada push a `main` despliega a producción.
@@ -130,4 +141,5 @@ Versiones estables fijadas al iniciar el proyecto (9 de octubre de 2026):
 - **TypeScript 6.0**: TypeScript 7 aún no es compatible con typescript-eslint ni con ts-jest.
 - **Prisma 7.10**: la etiqueta `latest` de npm apunta a una versión candidata de Prisma 8; se usa la última estable.
 - **Un solo proyecto de Vercel con Services** en lugar de dos proyectos separados: frontend y backend comparten dominio. Decisión del equipo.
+- **Decisiones de caja** (la especificación no las fijaba; las definió el equipo): un depósito es efectivo que entra a la gaveta; una venta solo se anula mientras su turno sigue abierto; solo el cajero abre caja y vende.
 - **Entrypoint del backend** `apps/backend/server.js`, que carga la salida de `tsc` en lugar de un handler manual en `api/`: el compilador de Vercel no emite los metadatos de decoradores que NestJS necesita (detalles en `docs/despliegue.md`).

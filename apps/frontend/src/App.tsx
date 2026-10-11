@@ -28,6 +28,13 @@ const DetalleCompra = diferida(() => import('@/pages/compras/Compras'), 'Detalle
 const NuevaCompra = diferida(() => import('@/pages/compras/NuevaCompra'), 'NuevaCompra');
 const Traslados = diferida(() => import('@/pages/traslados/Traslados'), 'Traslados');
 const NuevoTraslado = diferida(() => import('@/pages/traslados/NuevoTraslado'), 'NuevoTraslado');
+const Caja = diferida(() => import('@/pages/caja/Caja'), 'Caja');
+const Turnos = diferida(() => import('@/pages/caja/Turnos'), 'Turnos');
+const DetalleTurno = diferida(() => import('@/pages/caja/Turnos'), 'DetalleTurno');
+const PuntoVenta = diferida(() => import('@/pages/ventas/PuntoVenta'), 'PuntoVenta');
+const Ventas = diferida(() => import('@/pages/ventas/Ventas'), 'Ventas');
+const DetalleVenta = diferida(() => import('@/pages/ventas/Ventas'), 'DetalleVenta');
+const Comprobante = diferida(() => import('@/pages/ventas/Comprobante'), 'Comprobante');
 const DetalleTraslado = diferida(
   () => import('@/pages/traslados/DetalleTraslado'),
   'DetalleTraslado',
@@ -36,6 +43,7 @@ const DetalleTraslado = diferida(
 const TODOS: Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
 const ADMINISTRACION: Rol[] = ['ADMIN', 'AUDITOR'];
 const SUPERVISION: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
+const VENTAS: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
 
 const solo = (roles: Rol[], pantalla: ReactNode) => (
   <SoloRoles roles={roles}>
@@ -68,6 +76,11 @@ function NoEncontrada() {
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   {
+    // El comprobante se imprime sin el menú ni la barra superior.
+    path: '/ventas/:id/comprobante',
+    element: <RutaAutenticada>{solo(VENTAS, <Comprobante />)}</RutaAutenticada>,
+  },
+  {
     element: (
       <RutaAutenticada>
         <AppLayout />
@@ -84,6 +97,12 @@ const router = createBrowserRouter([
       { path: 'traslados', element: solo(SUPERVISION, <Traslados />) },
       { path: 'traslados/nuevo', element: solo(['ADMIN', 'GERENTE'], <NuevoTraslado />) },
       { path: 'traslados/:id', element: solo(SUPERVISION, <DetalleTraslado />) },
+      { path: 'punto-de-venta', element: solo(['CAJERO'], <PuntoVenta />) },
+      { path: 'caja', element: solo(['CAJERO'], <Caja />) },
+      { path: 'caja/turnos', element: solo(VENTAS, <Turnos />) },
+      { path: 'caja/turnos/:id', element: solo(VENTAS, <DetalleTurno />) },
+      { path: 'ventas', element: solo(VENTAS, <Ventas />) },
+      { path: 'ventas/:id', element: solo(VENTAS, <DetalleVenta />) },
       { path: 'auditoria/bitacora', element: solo(ADMINISTRACION, <Bitacora />) },
       { path: 'admin/usuarios', element: solo(ADMINISTRACION, <Usuarios />) },
       { path: 'admin/ubicaciones', element: solo(ADMINISTRACION, <Ubicaciones />) },

@@ -88,7 +88,9 @@ async function solicitar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Pro
       error?.detalles,
     );
   }
-  return (await respuesta.json()) as T;
+  // Una respuesta `null` de NestJS llega con el cuerpo vacío (por ejemplo, sin turno abierto).
+  const texto = await respuesta.text();
+  return (texto === '' ? null : JSON.parse(texto)) as T;
 }
 
 /** Arma una query string omitiendo valores vacíos. */

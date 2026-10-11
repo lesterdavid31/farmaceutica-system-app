@@ -1,5 +1,9 @@
 import {
   Activity,
+  Banknote,
+  ClipboardList,
+  Receipt,
+  ShoppingCart,
   ArrowLeftRight,
   BellRing,
   Boxes,
@@ -23,6 +27,8 @@ export interface ItemNavegacion {
   etiqueta: string;
   icono: LucideIcon;
   roles: readonly Rol[];
+  /** Solo se marca activo con la ruta exacta (por ejemplo, /caja frente a /caja/turnos). */
+  fin?: boolean;
   /** Condición adicional al rol (por ejemplo, ser gerente de la bodega). */
   visible?: (usuario: Perfil) => boolean;
 }
@@ -35,10 +41,25 @@ export interface SeccionNavegacion {
 const TODOS: readonly Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
 const ADMINISTRACION: readonly Rol[] = ['ADMIN', 'AUDITOR'];
 const SUPERVISION: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
+const VENTAS: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
 
 /** Menú lateral. Cada fase agrega sus módulos aquí; solo se muestran los que el usuario puede usar. */
 export const NAVEGACION: SeccionNavegacion[] = [
   { items: [{ ruta: '/', etiqueta: 'Inicio', icono: House, roles: TODOS }] },
+  {
+    titulo: 'Ventas y caja',
+    items: [
+      {
+        ruta: '/punto-de-venta',
+        etiqueta: 'Punto de venta',
+        icono: ShoppingCart,
+        roles: ['CAJERO'],
+      },
+      { ruta: '/caja', etiqueta: 'Caja', icono: Banknote, roles: ['CAJERO'], fin: true },
+      { ruta: '/ventas', etiqueta: 'Ventas', icono: Receipt, roles: VENTAS },
+      { ruta: '/caja/turnos', etiqueta: 'Turnos de caja', icono: ClipboardList, roles: VENTAS },
+    ],
+  },
   {
     titulo: 'Inventario',
     items: [

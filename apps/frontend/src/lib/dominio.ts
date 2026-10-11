@@ -32,6 +32,11 @@ export const ACCIONES_BITACORA: Record<string, string> = {
   DESPACHAR: 'Despachar',
   RECIBIR: 'Recibir',
   CANCELAR: 'Cancelar',
+  ABRIR_CAJA: 'Abrir caja',
+  MOVIMIENTO_CAJA: 'Movimiento de caja',
+  CERRAR_CAJA: 'Cerrar caja',
+  VENDER: 'Vender',
+  ANULAR: 'Anular',
 };
 
 export function etiquetaAccion(accion: string) {
@@ -339,4 +344,131 @@ export interface TrasladoDetalle extends Omit<TrasladoResumen, 'productos' | 'un
     usuario: { id: string; nombre: string } | null;
   }[];
   acciones: AccionTraslado[];
+}
+
+// ─── Caja y ventas ────────────────────────────────────────────────────────────
+
+export type MetodoPago = 'EFECTIVO' | 'TARJETA' | 'CONTRA_ENTREGA';
+export type TipoMovimientoCaja =
+  'VENTA' | 'COBRO_CONTRA_ENTREGA' | 'GASTO' | 'RETIRO' | 'DEPOSITO' | 'ANULACION';
+export type EstadoTurnoCaja = 'ABIERTO' | 'CERRADO';
+export type EstadoVenta = 'COMPLETADA' | 'ANULADA';
+export type CanalVenta = 'MOSTRADOR' | 'CALL_CENTER';
+
+export const METODOS_PAGO: Record<MetodoPago, string> = {
+  EFECTIVO: 'Efectivo',
+  TARJETA: 'Tarjeta',
+  CONTRA_ENTREGA: 'Contra entrega',
+};
+
+export const TIPOS_MOVIMIENTO_CAJA: Record<TipoMovimientoCaja, string> = {
+  VENTA: 'Venta',
+  COBRO_CONTRA_ENTREGA: 'Cobro contra entrega',
+  GASTO: 'Gasto',
+  RETIRO: 'Retiro',
+  DEPOSITO: 'Depósito',
+  ANULACION: 'Anulación',
+};
+
+export const ESTADOS_VENTA: Record<EstadoVenta, string> = {
+  COMPLETADA: 'Completada',
+  ANULADA: 'Anulada',
+};
+
+export const CANALES_VENTA: Record<CanalVenta, string> = {
+  MOSTRADOR: 'Mostrador',
+  CALL_CENTER: 'Call center',
+};
+
+export interface ResumenCaja {
+  montoInicial: string;
+  efectivoPorTipo: Record<TipoMovimientoCaja, string>;
+  porMetodo: Record<MetodoPago, string>;
+  ingresosEfectivo: string;
+  egresosEfectivo: string;
+  efectivoEsperado: string;
+}
+
+export interface MovimientoCaja {
+  id: string;
+  tipo: TipoMovimientoCaja;
+  metodoPago: MetodoPago;
+  monto: string;
+  referenciaId: string | null;
+  descripcion: string | null;
+  createdAt: string;
+  usuario: { id: string; nombre: string };
+}
+
+export interface TurnoCajaResumen {
+  id: string;
+  estado: EstadoTurnoCaja;
+  apertura: string;
+  cierre: string | null;
+  montoInicial: string;
+  efectivoEsperado: string | null;
+  efectivoContado: string | null;
+  diferencia: string | null;
+  observaciones: string | null;
+  cajeroId: string;
+  ubicacion: UbicacionResumen;
+  cajero: { id: string; nombre: string };
+  _count: { ventas: number };
+}
+
+export interface TurnoCajaDetalle extends Omit<TurnoCajaResumen, '_count'> {
+  movimientos: MovimientoCaja[];
+  resumen: ResumenCaja;
+  ventas: { estado: EstadoVenta; cantidad: number; total: string | null }[];
+  puedeOperar: boolean;
+}
+
+export interface ProductoVenta {
+  id: string;
+  sku: string;
+  nombre: string;
+  principioActivo: string;
+  presentacion: string;
+  precioVenta: string;
+  requiereReceta: boolean;
+  vigente: number;
+}
+
+export interface PagoVenta {
+  id?: string;
+  metodo: MetodoPago;
+  monto: string;
+  referencia?: string | null;
+}
+
+export interface VentaResumen {
+  id: string;
+  numero: number;
+  ubicacionId: string;
+  nit: string;
+  canal: CanalVenta;
+  total: string;
+  estado: EstadoVenta;
+  createdAt: string;
+  ubicacion: UbicacionResumen;
+  usuario: { id: string; nombre: string };
+  pagos: PagoVenta[];
+}
+
+export interface VentaDetalle extends VentaResumen {
+  turnoCajaId: string | null;
+  motivoAnulacion: string | null;
+  fechaAnulacion: string | null;
+  ubicacion: UbicacionResumen & { direccion: string; telefono: string | null };
+  anuladaPor: { id: string; nombre: string } | null;
+  turnoCaja: { id: string; estado: EstadoTurnoCaja } | null;
+  detalles: {
+    id: string;
+    cantidad: number;
+    precioUnitario: string;
+    subtotal: string;
+    producto: { id: string; sku: string; nombre: string; presentacion: string };
+    lote: { id: string; numeroLote: string; fechaVencimiento: string };
+  }[];
+  puedeAnular: boolean;
 }

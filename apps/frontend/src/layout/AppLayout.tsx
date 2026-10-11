@@ -35,7 +35,7 @@ function MenuLateral({ onNavegar }: { onNavegar?: () => void }) {
               <li key={item.ruta}>
                 <NavLink
                   to={item.ruta}
-                  end={item.ruta === '/'}
+                  end={item.ruta === '/' || item.fin}
                   onClick={onNavegar}
                   className={({ isActive }) =>
                     cn(
