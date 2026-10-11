@@ -134,3 +134,145 @@ export interface RegistroBitacora {
   createdAt: string;
   usuario: { id: string; nombre: string; email: string; rol: Rol } | null;
 }
+
+// ─── Inventario ───────────────────────────────────────────────────────────────
+
+export type Vigencia = 'VIGENTE' | 'POR_VENCER' | 'VENCIDO';
+
+export type TipoMovimientoInventario =
+  | 'COMPRA'
+  | 'VENTA'
+  | 'ANULACION_VENTA'
+  | 'TRASLADO_SALIDA'
+  | 'TRASLADO_ENTRADA'
+  | 'AJUSTE'
+  | 'BAJA_VENCIMIENTO';
+
+export const TIPOS_MOVIMIENTO: Record<TipoMovimientoInventario, string> = {
+  COMPRA: 'Compra',
+  VENTA: 'Venta',
+  ANULACION_VENTA: 'Anulación de venta',
+  TRASLADO_SALIDA: 'Salida por traslado',
+  TRASLADO_ENTRADA: 'Entrada por traslado',
+  AJUSTE: 'Ajuste',
+  BAJA_VENCIMIENTO: 'Baja por vencimiento',
+};
+
+export interface LoteExistencia {
+  loteId: string;
+  numeroLote: string;
+  fechaVencimiento: string;
+  costoUnitario: string;
+  cantidad: number;
+  ubicacionId: string;
+  ubicacion: string;
+  vigencia: Vigencia;
+  diasParaVencer: number;
+}
+
+export interface ExistenciaProducto {
+  producto: {
+    id: string;
+    sku: string;
+    nombre: string;
+    principioActivo: string;
+    presentacion: string;
+    requiereReceta: boolean;
+    categoria: string;
+  };
+  vigente: number;
+  porVencer: number;
+  vencido: number;
+  valorCosto: string;
+  cantidadMinima: number | null;
+  bajoMinimo: boolean;
+  lotes: LoteExistencia[];
+}
+
+export interface RespuestaExistencias {
+  data: ExistenciaProducto[];
+  total: number;
+  page: number;
+  limit: number;
+  ubicacionId: string | null;
+  diasAlerta: number;
+}
+
+export interface StockGlobal {
+  producto: { id: string; sku: string; nombre: string; presentacion: string };
+  totalVigente: number;
+  ubicaciones: {
+    ubicacion: { id: string; codigo: string; nombre: string; tipo: TipoUbicacion };
+    vigente: number;
+    porVencer: number;
+    vencido: number;
+    proximoVencimiento: string | null;
+  }[];
+}
+
+export interface MovimientoKardex {
+  id: string;
+  fecha: string;
+  tipo: TipoMovimientoInventario;
+  cantidad: number;
+  saldo: number;
+  costoUnitario: string;
+  motivo: string | null;
+  referenciaTipo: string | null;
+  referenciaId: string | null;
+  ubicacion: { id: string; nombre: string };
+  lote: { id: string; numeroLote: string; fechaVencimiento: string };
+  usuario: string;
+}
+
+export interface ExistenciaAlerta {
+  id: string;
+  cantidad: number;
+  diasParaVencer: number;
+  lote: {
+    id: string;
+    numeroLote: string;
+    fechaVencimiento: string;
+    costoUnitario: string;
+    producto: { id: string; sku: string; nombre: string };
+  };
+  ubicacion: { id: string; nombre: string };
+}
+
+export interface Alertas {
+  diasAlerta: number;
+  vencidos: ExistenciaAlerta[];
+  porVencer: ExistenciaAlerta[];
+  bajoMinimo: {
+    ubicacion: { id: string; nombre: string };
+    producto: { id: string; sku: string; nombre: string };
+    cantidadMinima: number;
+    vigente: number;
+    sugerido: number;
+  }[];
+}
+
+export interface CompraResumen {
+  id: string;
+  numeroDocumento: string | null;
+  fecha: string;
+  total: string;
+  proveedor: { id: string; nombre: string };
+  usuario: { nombre: string };
+  _count: { detalles: number };
+}
+
+export interface CompraDetalle extends Omit<CompraResumen, '_count' | 'proveedor'> {
+  observaciones: string | null;
+  createdAt: string;
+  proveedor: { id: string; nombre: string; nit: string };
+  ubicacion: { id: string; nombre: string };
+  detalles: {
+    id: string;
+    cantidad: number;
+    costoUnitario: string;
+    subtotal: string;
+    producto: { id: string; sku: string; nombre: string; presentacion: string };
+    lote: { id: string; numeroLote: string; fechaVencimiento: string };
+  }[];
+}

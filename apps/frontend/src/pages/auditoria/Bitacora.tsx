@@ -107,7 +107,7 @@ export function Bitacora() {
   const listado = useListado<
     RegistroBitacora,
     { usuarioId: string; entidad: string; accion: string; desde: string; hasta: string }
-  >('bitacora', { usuarioId: '', entidad: '', accion: '', desde: '', hasta: '' }, 25);
+  >('bitacora', { usuarioId: '', entidad: '', accion: '', desde: '', hasta: '' }, { limit: 25 });
   const catalogos = useCatalogo<{ entidades: string[]; acciones: string[] }>(
     'bitacora',
     '/bitacora/catalogos',

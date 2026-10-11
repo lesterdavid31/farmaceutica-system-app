@@ -97,6 +97,15 @@ Todos usan la contraseña **`Farmacia2026!`**.
 - Usuarios, ubicaciones, productos, categorías y proveedores no se borran: se desactivan, para conservar su historial.
 - Los montos `DECIMAL` llegan desde la API como texto (por ejemplo `"25.5"`) para no perder precisión.
 
+## Inventario
+
+- La existencia se controla por ubicación y lote. Toda salida de ventas y traslados se asigna por **FEFO**: el sistema elige los lotes, empezando por el que vence primero, y nunca usa lotes vencidos. Un lote se puede usar hasta su fecha de vencimiento inclusive (fecha de Guatemala).
+- Las salidas bloquean las filas de existencia (`SELECT ... FOR UPDATE`) y restan con una actualización condicional (`cantidad >= x`) dentro de una transacción, para que dos operaciones simultáneas no vendan el mismo stock.
+- Las correcciones se hacen con ajustes con motivo; los lotes vencidos se retiran con una baja por vencimiento. Ambos quedan en el kardex.
+- Solo la bodega central registra compras a proveedores; las sucursales se abastecen con traslados.
+- El seed carga 3 compras de la bodega (con lotes vencidos, por vencer y de vencimiento lejano), el inventario inicial de apertura de cada sucursal como ajuste con motivo y el stock mínimo de los productos de mayor rotación. Cada sucursal carece de algunos productos para demostrar la sugerencia de traslado del call center. La primera carga tarda unos 3 minutos.
+- Las pruebas e2e de inventario corren dentro de transacciones que se revierten, porque el kardex es inmutable: no dejan datos en la base.
+
 ## Despliegue
 
 Producción: <https://farmaceutica-system-app.vercel.app> (API en `/api/v1`, Swagger en `/api/docs`). Proyecto de Vercel `farmaceutica-system-app` conectado a GitHub: cada push a `main` despliega a producción.

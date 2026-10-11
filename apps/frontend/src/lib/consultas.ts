@@ -21,19 +21,36 @@ export function useDebounce<T>(valor: T, ms = 300) {
   return retrasado;
 }
 
-/** Listado paginado con filtros: `?page=&limit=&...` → `{ data, total, page, limit }`. */
-export function useListado<T, F extends Record<string, ValorFiltro>>(
+/**
+ * Listado paginado con filtros: `?page=&limit=&...` → `{ data, total, page, limit }`.
+ * `extra` agrega filtros que vienen de fuera de la pantalla (por ejemplo, la ubicación elegida en
+ * la barra superior). La clave de caché separa el recurso por "/", así que invalidar
+ * `['inventario']` refresca también `inventario/existencias`.
+ */
+export function useListado<
+  T,
+  F extends Record<string, ValorFiltro>,
+  R extends Pagina<T> = Pagina<T>,
+>(
   recurso: string,
   filtrosIniciales: F,
-  limit = 20,
+  { limit = 20, extra = {} }: { limit?: number; extra?: Record<string, ValorFiltro> } = {},
 ) {
   const [filtros, setFiltrosEstado] = useState<F>(filtrosIniciales);
   const [page, setPage] = useState(1);
+  // Si cambia un filtro externo (por ejemplo, la ubicación), se vuelve a la primera página.
+  const claveExtra = JSON.stringify(extra);
+  const [extraPrevio, setExtraPrevio] = useState(claveExtra);
+  if (claveExtra !== extraPrevio) {
+    setExtraPrevio(claveExtra);
+    setPage(1);
+  }
   // La búsqueda de texto espera a que el usuario deje de escribir.
   const filtrosConsulta = useDebounce(filtros);
+  const parametros = { ...filtrosConsulta, ...extra, page, limit };
   const consulta = useQuery({
-    queryKey: [recurso, 'listado', { ...filtrosConsulta, page, limit }],
-    queryFn: () => api.get<Pagina<T>>(`/${recurso}${query({ ...filtrosConsulta, page, limit })}`),
+    queryKey: [...recurso.split('/'), 'listado', parametros],
+    queryFn: () => api.get<R>(`/${recurso}${query(parametros)}`),
     placeholderData: keepPreviousData,
   });
 

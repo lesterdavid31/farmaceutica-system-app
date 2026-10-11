@@ -23,7 +23,7 @@ function MenuLateral({ onNavegar }: { onNavegar?: () => void }) {
   const usuario = useUsuario();
   return (
     <nav aria-label="Menú principal" className="flex flex-col gap-4 px-3 py-4">
-      {navegacionPara(usuario.rol).map((seccion, i) => (
+      {navegacionPara(usuario).map((seccion, i) => (
         <div key={seccion.titulo ?? i}>
           {seccion.titulo && (
             <p className="m-0 mb-1 px-3 text-meta font-semibold text-texto-secundario">

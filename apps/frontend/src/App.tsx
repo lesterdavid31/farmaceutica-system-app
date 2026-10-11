@@ -20,8 +20,16 @@ const Proveedores = diferida(() => import('@/pages/admin/Proveedores'), 'Proveed
 const Ubicaciones = diferida(() => import('@/pages/admin/Ubicaciones'), 'Ubicaciones');
 const Usuarios = diferida(() => import('@/pages/admin/Usuarios'), 'Usuarios');
 const EstadoSistema = diferida(() => import('@/pages/EstadoSistema'), 'EstadoSistema');
+const Existencias = diferida(() => import('@/pages/inventario/Existencias'), 'Existencias');
+const Kardex = diferida(() => import('@/pages/inventario/Kardex'), 'Kardex');
+const Alertas = diferida(() => import('@/pages/inventario/Alertas'), 'Alertas');
+const Compras = diferida(() => import('@/pages/compras/Compras'), 'Compras');
+const DetalleCompra = diferida(() => import('@/pages/compras/Compras'), 'DetalleCompra');
+const NuevaCompra = diferida(() => import('@/pages/compras/NuevaCompra'), 'NuevaCompra');
 
+const TODOS: Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
 const ADMINISTRACION: Rol[] = ['ADMIN', 'AUDITOR'];
+const SUPERVISION: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
 
 const solo = (roles: Rol[], pantalla: ReactNode) => (
   <SoloRoles roles={roles}>
@@ -61,6 +69,12 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Inicio /> },
+      { path: 'inventario/existencias', element: solo(TODOS, <Existencias />) },
+      { path: 'inventario/alertas', element: solo(SUPERVISION, <Alertas />) },
+      { path: 'inventario/kardex', element: solo(SUPERVISION, <Kardex />) },
+      { path: 'compras', element: solo(SUPERVISION, <Compras />) },
+      { path: 'compras/nueva', element: solo(['ADMIN', 'GERENTE'], <NuevaCompra />) },
+      { path: 'compras/:id', element: solo(SUPERVISION, <DetalleCompra />) },
       { path: 'auditoria/bitacora', element: solo(ADMINISTRACION, <Bitacora />) },
       { path: 'admin/usuarios', element: solo(ADMINISTRACION, <Usuarios />) },
       { path: 'admin/ubicaciones', element: solo(ADMINISTRACION, <Ubicaciones />) },

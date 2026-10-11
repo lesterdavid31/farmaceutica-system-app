@@ -1,8 +1,12 @@
 import {
   Activity,
+  BellRing,
+  Boxes,
   Building2,
   FolderTree,
+  History,
   House,
+  PackagePlus,
   Pill,
   ScrollText,
   Settings,
@@ -10,13 +14,16 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import type { Rol } from '@/lib/dominio';
+import { esGerenteBodega } from '@/auth/permisos';
+import type { Perfil, Rol } from '@/lib/dominio';
 
 export interface ItemNavegacion {
   ruta: string;
   etiqueta: string;
   icono: LucideIcon;
   roles: readonly Rol[];
+  /** Condición adicional al rol (por ejemplo, ser gerente de la bodega). */
+  visible?: (usuario: Perfil) => boolean;
 }
 
 export interface SeccionNavegacion {
@@ -26,10 +33,26 @@ export interface SeccionNavegacion {
 
 const TODOS: readonly Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
 const ADMINISTRACION: readonly Rol[] = ['ADMIN', 'AUDITOR'];
+const SUPERVISION: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
 
-/** Menú lateral. Cada fase agrega sus módulos aquí; solo se muestran los que el rol puede usar. */
+/** Menú lateral. Cada fase agrega sus módulos aquí; solo se muestran los que el usuario puede usar. */
 export const NAVEGACION: SeccionNavegacion[] = [
   { items: [{ ruta: '/', etiqueta: 'Inicio', icono: House, roles: TODOS }] },
+  {
+    titulo: 'Inventario',
+    items: [
+      { ruta: '/inventario/existencias', etiqueta: 'Existencias', icono: Boxes, roles: TODOS },
+      { ruta: '/inventario/alertas', etiqueta: 'Alertas', icono: BellRing, roles: SUPERVISION },
+      { ruta: '/inventario/kardex', etiqueta: 'Kardex', icono: History, roles: SUPERVISION },
+      {
+        ruta: '/compras',
+        etiqueta: 'Compras',
+        icono: PackagePlus,
+        roles: SUPERVISION,
+        visible: (u) => u.rol !== 'GERENTE' || esGerenteBodega(u),
+      },
+    ],
+  },
   {
     titulo: 'Auditoría',
     items: [
@@ -70,9 +93,9 @@ export const NAVEGACION: SeccionNavegacion[] = [
   },
 ];
 
-export function navegacionPara(rol: Rol): SeccionNavegacion[] {
+export function navegacionPara(usuario: Perfil): SeccionNavegacion[] {
   return NAVEGACION.map((s) => ({
     ...s,
-    items: s.items.filter((i) => i.roles.includes(rol)),
+    items: s.items.filter((i) => i.roles.includes(usuario.rol) && (i.visible?.(usuario) ?? true)),
   })).filter((s) => s.items.length > 0);
 }

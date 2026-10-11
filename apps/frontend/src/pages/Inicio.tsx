@@ -10,7 +10,7 @@ import { navegacionPara } from '@/layout/navegacion';
  */
 export function Inicio() {
   const usuario = useUsuario();
-  const accesos = navegacionPara(usuario.rol)
+  const accesos = navegacionPara(usuario)
     .flatMap((s) => s.items)
     .filter((i) => i.ruta !== '/');
 
