@@ -56,6 +56,16 @@ describe('resumirCaja (RN-12)', () => {
     expect(r.porMetodo.EFECTIVO.toFixed(2)).toBe('50.00');
   });
 
+  it('el cobro contra entrega es efectivo; el cobro con tarjeta en la puerta no', () => {
+    const r = resumirCaja(100, [
+      mov(COBRO_CONTRA_ENTREGA, MetodoPago.CONTRA_ENTREGA, 80),
+      mov(COBRO_CONTRA_ENTREGA, TARJETA, 45),
+    ]);
+    expect(r.efectivoEsperado.toFixed(2)).toBe('180.00');
+    expect(r.efectivoPorTipo.COBRO_CONTRA_ENTREGA.toFixed(2)).toBe('80.00');
+    expect(r.porMetodo.TARJETA.toFixed(2)).toBe('45.00');
+  });
+
   it('suma decimales sin errores de punto flotante', () => {
     const r = resumirCaja(0, [mov(VENTA, EFECTIVO, 0.1), mov(VENTA, EFECTIVO, 0.2)]);
     expect(r.efectivoEsperado.toFixed(2)).toBe('0.30');

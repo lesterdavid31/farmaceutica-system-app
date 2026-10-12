@@ -419,7 +419,7 @@ describe('Caja y ventas (e2e)', () => {
         SELECT COUNT(*) AS n FROM turno_caja t
         LEFT JOIN (
           SELECT turno_caja_id, SUM(monto) AS efectivo FROM movimiento_caja
-          WHERE metodo_pago = 'EFECTIVO' GROUP BY turno_caja_id
+          WHERE metodo_pago IN ('EFECTIVO', 'CONTRA_ENTREGA') GROUP BY turno_caja_id
         ) m ON m.turno_caja_id = t.id
         WHERE t.estado = 'CERRADO'
           AND (t.efectivo_esperado <> t.monto_inicial + COALESCE(m.efectivo, 0)
@@ -428,10 +428,13 @@ describe('Caja y ventas (e2e)', () => {
     });
 
     it('en cada venta completada los pagos y las líneas suman el total', async () => {
+      // Una venta de call center se cobra al entregar el pedido: antes no tiene pagos.
       const malas = await prisma.$queryRaw<{ n: bigint }[]>`
         SELECT COUNT(*) AS n FROM venta v
+        LEFT JOIN pedido pe ON pe.id = v.pedido_id
         WHERE v.estado = 'COMPLETADA' AND (
-          v.total <> (SELECT COALESCE(SUM(monto), 0) FROM pago p WHERE p.venta_id = v.id)
+          (SELECT COALESCE(SUM(monto), 0) FROM pago p WHERE p.venta_id = v.id)
+            <> CASE WHEN v.canal = 'MOSTRADOR' OR pe.estado = 'ENTREGADO' THEN v.total ELSE 0 END
           OR v.total <> (SELECT COALESCE(SUM(subtotal), 0) FROM detalle_venta d WHERE d.venta_id = v.id))`;
       expect(Number(malas[0].n)).toBe(0);
     });

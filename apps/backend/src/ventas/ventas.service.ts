@@ -123,31 +123,12 @@ export class VentasService {
         usuarioId: usuario.id,
       },
     });
-    for (const item of dto.items) {
-      const precio = producto(item.productoId).precioVenta;
-      const asignados = await this.motor.descontarFefo(tx, {
-        ubicacionId: turno.ubicacionId,
-        productoId: item.productoId,
-        cantidad: item.cantidad,
-        tipo: TipoMovimientoInventario.VENTA,
-        referenciaTipo: REFERENCIA,
-        referenciaId: venta.id,
-        motivo: `Venta #${venta.numero}`,
-        usuarioId: usuario.id,
-      });
-      for (const a of asignados) {
-        await tx.detalleVenta.create({
-          data: {
-            ventaId: venta.id,
-            productoId: item.productoId,
-            loteId: a.loteId,
-            cantidad: a.cantidad,
-            precioUnitario: precio,
-            subtotal: precio.mul(a.cantidad),
-          },
-        });
-      }
-    }
+    await this.descontarLineas(
+      tx,
+      venta,
+      dto.items.map((i) => ({ ...i, precio: producto(i.productoId).precioVenta })),
+      usuario.id,
+    );
     for (const pago of dto.pagos) {
       await tx.pago.create({
         data: {
@@ -248,6 +229,135 @@ export class VentasService {
         monto: p.monto,
         referenciaId: venta.id,
         descripcion: motivo,
+        usuarioId: usuario.id,
+      });
+    }
+  }
+
+  /**
+   * Descuenta cada línea por FEFO en la ubicación de la venta (sin lotes vencidos) y guarda una
+   * fila de detalle por lote asignado.
+   */
+  private async descontarLineas(
+    tx: Tx,
+    venta: { id: string; numero: number; ubicacionId: string },
+    lineas: { productoId: string; cantidad: number; precio: Prisma.Decimal }[],
+    usuarioId: string,
+  ) {
+    for (const linea of lineas) {
+      const asignados = await this.motor.descontarFefo(tx, {
+        ubicacionId: venta.ubicacionId,
+        productoId: linea.productoId,
+        cantidad: linea.cantidad,
+        tipo: TipoMovimientoInventario.VENTA,
+        referenciaTipo: REFERENCIA,
+        referenciaId: venta.id,
+        motivo: `Venta #${venta.numero}`,
+        usuarioId,
+      });
+      for (const a of asignados) {
+        await tx.detalleVenta.create({
+          data: {
+            ventaId: venta.id,
+            productoId: linea.productoId,
+            loteId: a.loteId,
+            cantidad: a.cantidad,
+            precioUnitario: linea.precio,
+            subtotal: linea.precio.mul(a.cantidad),
+          },
+        });
+      }
+    }
+  }
+
+  /**
+   * RN-21: venta de un pedido de call center al pasar a EN_PREPARACION. Descuenta por FEFO en la
+   * sucursal de despacho con los precios fijados en el pedido. No tiene turno ni pagos: se cobra
+   * al entregar. Si falta existencia vigente, informa todos los faltantes.
+   */
+  async crearVentaPedidoEn(
+    tx: Tx,
+    pedido: {
+      id: string;
+      numero: number;
+      ubicacionDespachoId: string;
+      total: Prisma.Decimal;
+      nit: string | null;
+      detalles: {
+        productoId: string;
+        cantidad: number;
+        precioUnitario: Prisma.Decimal;
+        producto: { nombre: string };
+      }[];
+    },
+    usuario: UsuarioAutenticado,
+  ) {
+    const vigente = await this.motor.vigentePorProducto(
+      tx,
+      pedido.ubicacionDespachoId,
+      pedido.detalles.map((d) => d.productoId),
+    );
+    const faltantes = pedido.detalles
+      .filter((d) => (vigente.get(d.productoId) ?? 0) < d.cantidad)
+      .map((d) => {
+        const hay = vigente.get(d.productoId) ?? 0;
+        return `${d.producto.nombre}: el pedido lleva ${d.cantidad} y hay ${hay} ${hay === 1 ? 'unidad vigente' : 'unidades vigentes'}`;
+      });
+    if (faltantes.length > 0) {
+      throw new ReglaNegocioException(
+        `No hay existencia suficiente para preparar el pedido #${pedido.numero}`,
+        faltantes,
+      );
+    }
+    const venta = await tx.venta.create({
+      data: {
+        ubicacionId: pedido.ubicacionDespachoId,
+        nit: normalizarNit(pedido.nit),
+        canal: CanalVenta.CALL_CENTER,
+        pedidoId: pedido.id,
+        total: pedido.total,
+        usuarioId: usuario.id,
+      },
+    });
+    await this.descontarLineas(
+      tx,
+      venta,
+      pedido.detalles.map((d) => ({ ...d, precio: d.precioUnitario })),
+      usuario.id,
+    );
+    return venta;
+  }
+
+  /** Revierte el inventario de la venta de un pedido cancelado (sin caja: aún no se cobró). */
+  async anularVentaPedidoEn(tx: Tx, ventaId: string, motivo: string, usuario: UsuarioAutenticado) {
+    const venta = await tx.venta.findUniqueOrThrow({
+      where: { id: ventaId },
+      include: { detalles: true, pagos: true },
+    });
+    if (venta.estado === EstadoVenta.ANULADA) {
+      return;
+    }
+    if (venta.pagos.length > 0) {
+      throw new ReglaNegocioException(`La venta #${venta.numero} ya se cobró`);
+    }
+    await tx.venta.update({
+      where: { id: ventaId },
+      data: {
+        estado: EstadoVenta.ANULADA,
+        motivoAnulacion: motivo,
+        fechaAnulacion: new Date(),
+        anuladaPorId: usuario.id,
+      },
+    });
+    for (const d of venta.detalles) {
+      await this.motor.ingresar(tx, {
+        ubicacionId: venta.ubicacionId,
+        loteId: d.loteId,
+        cantidad: d.cantidad,
+        tipo: TipoMovimientoInventario.ANULACION_VENTA,
+        referenciaTipo: REFERENCIA,
+        referenciaId: venta.id,
+        motivo: `Anulación de la venta #${venta.numero}: ${motivo}`,
         usuarioId: usuario.id,
       });
     }

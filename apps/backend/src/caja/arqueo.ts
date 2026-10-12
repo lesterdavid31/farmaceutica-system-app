@@ -27,6 +27,15 @@ export const TIPOS_MANUALES = [
 ] as const;
 export type TipoManual = (typeof TIPOS_MANUALES)[number];
 
+/**
+ * Métodos que mueven efectivo de la gaveta. El cobro contra entrega es efectivo que el repartidor
+ * entrega en la sucursal, así que también entra al arqueo.
+ */
+export const METODOS_EN_EFECTIVO: readonly MetodoPago[] = [
+  MetodoPago.EFECTIVO,
+  MetodoPago.CONTRA_ENTREGA,
+];
+
 export function montoConSigno(tipo: TipoMovimientoCaja, monto: Monto): Decimal {
   return new Decimal(monto).abs().mul(SIGNO_MOVIMIENTO[tipo]);
 }
@@ -54,8 +63,8 @@ const ceros = <K extends string>(claves: readonly K[]) =>
   Object.fromEntries(claves.map((k) => [k, new Decimal(0)])) as Record<K, Decimal>;
 
 /**
- * Resumen del turno. Solo el efectivo entra en el arqueo: los pagos con tarjeta no están en la
- * gaveta, así que se informan pero no cambian el efectivo esperado.
+ * Resumen del turno. Solo el efectivo (incluido el contra entrega) entra en el arqueo: los pagos
+ * con tarjeta no están en la gaveta, así que se informan pero no cambian el efectivo esperado.
  */
 export function resumirCaja(montoInicial: Monto, movimientos: MovimientoArqueo[]): ResumenCaja {
   const efectivoPorTipo = ceros(Object.values(TipoMovimientoCaja));
@@ -65,7 +74,7 @@ export function resumirCaja(montoInicial: Monto, movimientos: MovimientoArqueo[]
   for (const m of movimientos) {
     const monto = new Decimal(m.monto);
     porMetodo[m.metodoPago] = porMetodo[m.metodoPago].add(monto);
-    if (m.metodoPago !== MetodoPago.EFECTIVO) {
+    if (!METODOS_EN_EFECTIVO.includes(m.metodoPago)) {
       continue;
     }
     efectivoPorTipo[m.tipo] = efectivoPorTipo[m.tipo].add(monto);

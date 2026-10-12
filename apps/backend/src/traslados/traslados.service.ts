@@ -331,6 +331,33 @@ export class TrasladosService {
     });
   }
 
+  /**
+   * Cancela los traslados de un pedido que aún no salieron del origen, cuando el pedido se
+   * cancela. Los que ya están en tránsito siguen su curso: el producto llega como reabastecimiento.
+   * Devuelve los números de los traslados cancelados y de los que siguen en tránsito.
+   */
+  async cancelarDePedidoEn(tx: Tx, pedidoId: string, motivo: string, usuario: UsuarioAutenticado) {
+    const traslados = await tx.traslado.findMany({
+      where: { pedidoId },
+      include: { origen: { select: { nombre: true } }, destino: { select: { nombre: true } } },
+    });
+    const cancelados: number[] = [];
+    const enTransito: number[] = [];
+    for (const t of traslados) {
+      if (ESTADOS_PREVIOS.cancelar.includes(t.estado)) {
+        await this.transicionar(tx, t, 'cancelar', {
+          canceladoPorId: usuario.id,
+          fechaCancelacion: new Date(),
+          motivoCancelacion: motivo,
+        });
+        cancelados.push(t.numero);
+      } else if (t.estado === EstadoTraslado.EN_TRANSITO) {
+        enTransito.push(t.numero);
+      }
+    }
+    return { cancelados, enTransito };
+  }
+
   private async cabecera(tx: Tx, id: string): Promise<Cabecera> {
     const traslado = await tx.traslado.findUnique({
       where: { id },
