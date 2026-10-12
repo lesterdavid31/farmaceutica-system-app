@@ -38,27 +38,28 @@ npm run dev:frontend   # http://localhost:5173
 
 ## Variables de entorno
 
-| App      | Variable         | Descripción                                                                                   |
-| -------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| backend  | `DATABASE_URL`   | Conexión _pooled_ de Neon (tiempo de ejecución)                                               |
-| backend  | `DIRECT_URL`     | Conexión directa de Neon (migraciones de Prisma)                                              |
-| backend  | `CORS_ORIGINS`   | Opcional. Dominios extra permitidos por CORS. En desarrollo se agrega `localhost:5173`        |
-| backend  | `PORT`           | Puerto local (3000 por defecto)                                                               |
-| backend  | `JWT_SECRET`     | Secreto para firmar los tokens (mínimo 32 caracteres aleatorios)                              |
-| backend  | `JWT_EXPIRES_IN` | Vigencia del token de acceso (`8h` por defecto)                                               |
-| frontend | `VITE_API_URL`   | Opcional. Solo si la API está en otro dominio; por defecto se usa `/api/v1` del mismo dominio |
+| App      | Variable              | Descripción                                                                                     |
+| -------- | --------------------- | ----------------------------------------------------------------------------------------------- |
+| backend  | `DATABASE_URL`        | Conexión _pooled_ de Neon (tiempo de ejecución)                                                 |
+| backend  | `DIRECT_URL`          | Conexión directa de Neon (migraciones de Prisma)                                                |
+| backend  | `CORS_ORIGINS`        | Opcional. Dominios extra permitidos por CORS. En desarrollo se agrega `localhost:5173`          |
+| backend  | `PORT`                | Puerto local (3000 por defecto)                                                                 |
+| backend  | `JWT_SECRET`          | Secreto para firmar los tokens (mínimo 32 caracteres aleatorios)                                |
+| backend  | `JWT_EXPIRES_IN`      | Vigencia del token de acceso (`8h` por defecto)                                                 |
+| backend  | `GOOGLE_MAPS_API_KEY` | Opcional. Key con Routes API para los tiempos de entrega; sin ella se usa el respaldo haversine |
+| frontend | `VITE_API_URL`        | Opcional. Solo si la API está en otro dominio; por defecto se usa `/api/v1` del mismo dominio   |
 
 ## Scripts
 
-| Comando                                 | Qué hace                                                                                                      |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `npm run lint`                          | ESLint en ambas apps                                                                                          |
-| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                                           |
-| `npm test`                              | Pruebas unitarias (Jest) de la API                                                                            |
-| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario, traslados, caja y ventas) |
-| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                                   |
-| `npm run build`                         | Build de producción de ambas apps                                                                             |
-| `npm run format`                        | Formatea con Prettier                                                                                         |
+| Comando                                 | Qué hace                                                                                                                   |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `npm run lint`                          | ESLint en ambas apps                                                                                                       |
+| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                                                        |
+| `npm test`                              | Pruebas unitarias (Jest) de la API                                                                                         |
+| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario, traslados, caja, ventas y call center) |
+| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                                                |
+| `npm run build`                         | Build de producción de ambas apps                                                                                          |
+| `npm run format`                        | Formatea con Prettier                                                                                                      |
 
 ## Usuarios de prueba
 
@@ -126,6 +127,23 @@ Todos usan la contraseña **`Farmacia2026!`**.
 - Cada operación de caja bloquea la fila del turno (`SELECT ... FOR UPDATE`), así que una venta y el cierre del mismo turno no se cruzan.
 - **Seed:** Escuintla tiene un turno cerrado con un faltante de Q15.50; Huehuetenango, uno cuadrado con una venta anulada; y Cobán, uno abierto con ventas. Xela no tiene turno, para probar la apertura.
 
+## Call center y entregas
+
+- **Clientes:** se buscan por teléfono, nombre o NIT. Cada dirección guarda coordenadas, que el operador marca con un clic en un mapa de OpenStreetMap (Leaflet, sin API key) o escribe a mano.
+- **Consultar disponibilidad:** devuelve las sucursales activas que tienen **todo** el pedido con lotes vigentes, ordenadas por tiempo estimado (ruta + preparación configurable) y con la mejor opción resaltada. Si ninguna lo tiene todo, propone la sucursal más cercana con los traslados que le faltan: primero un solo origen que cubra todo, si no, el origen más rápido por producto. Al tiempo se suma el viaje del traslado y la preparación en el origen.
+- **Tiempos de ruta:** se calculan en el backend con Google Maps Routes API (Compute Route Matrix), filtrando antes las 10 sucursales más cercanas en línea recta. Sin `GOOGLE_MAPS_API_KEY`, o si la API falla o excede la cuota, se usa haversine × 1.3 a la velocidad promedio configurable. La pantalla avisa cuando los tiempos son estimados.
+- **Crear pedido:** el servidor vuelve a calcular el plan de la sucursal elegida; si le falta producto, crea los traslados `PEDIDO_CLIENTE` en la misma transacción. La fecha de compromiso no puede ser anterior al tiempo estimado; por defecto es ahora + tiempo estimado, redondeada a 5 minutos.
+- **Estados:** `PENDIENTE → EN_PREPARACION → ASIGNADO → EN_CAMINO → ENTREGADO`. Al preparar se descuenta el inventario por FEFO y se genera la venta `CALL_CENTER`; si el pedido espera un traslado, primero hay que recibirlo. El gerente o el cajero de la sucursal asigna repartidor (empleados sin acceso al sistema) y avanza los estados. Cada cambio queda en el historial inmutable.
+- **Cobro (decisión del equipo):** contra entrega (efectivo) o tarjeta con datáfono, ambos al entregar. Entra a la caja del cajero que confirma; si confirma el gerente, al turno abierto más antiguo de la sucursal. Sin caja abierta no se confirma la entrega. Contra entrega cuenta como efectivo en el arqueo.
+- **Cancelación (decisión del equipo):** el operador, el gerente de la sucursal o el administrador, hasta `EN_CAMINO`. Si ya se descontó inventario, la venta se anula y los lotes regresan. Los traslados del pedido que no han salido se cancelan; los que están en tránsito llegan como reabastecimiento.
+- **Atrasos:** un pedido sin entregar después de su fecha de compromiso aparece como atrasado. Se calcula al consultar, sin tareas programadas.
+- **Seed:** 2 repartidores por sucursal, 8 clientes y 7 pedidos:
+  - Cobán: uno entregado y cobrado en la caja abierta, y otro en camino y atrasado.
+  - Xela: dos pendientes, uno de ellos atrasado.
+  - Escuintla: uno en preparación.
+  - Huehuetenango: uno que espera un traslado de MED-0014.
+  - Zacapa: uno cancelado.
+
 ## Despliegue
 
 Producción: <https://farmaceutica-system-app.vercel.app> (API en `/api/v1`, Swagger en `/api/docs`). Proyecto de Vercel `farmaceutica-system-app` conectado a GitHub: cada push a `main` despliega a producción.
@@ -141,5 +159,6 @@ Versiones estables fijadas al iniciar el proyecto (9 de octubre de 2026):
 - **TypeScript 6.0**: TypeScript 7 aún no es compatible con typescript-eslint ni con ts-jest.
 - **Prisma 7.10**: la etiqueta `latest` de npm apunta a una versión candidata de Prisma 8; se usa la última estable.
 - **Un solo proyecto de Vercel con Services** en lugar de dos proyectos separados: frontend y backend comparten dominio. Decisión del equipo.
+- **Decisiones del call center** (definidas por el equipo): los pedidos se cobran al entregar y el cobro entra a una caja abierta de la sucursal; se cancelan hasta `EN_CAMINO`; las coordenadas se marcan en un mapa de OpenStreetMap.
 - **Decisiones de caja** (la especificación no las fijaba; las definió el equipo): un depósito es efectivo que entra a la gaveta; una venta solo se anula mientras su turno sigue abierto; solo el cajero abre caja y vende.
 - **Entrypoint del backend** `apps/backend/server.js`, que carga la salida de `tsc` en lugar de un handler manual en `api/`: el compilador de Vercel no emite los metadatos de decoradores que NestJS necesita (detalles en `docs/despliegue.md`).

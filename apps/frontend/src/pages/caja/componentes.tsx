@@ -71,9 +71,10 @@ export function ResumenTurno({ turno }: { turno: TurnoCajaDetalle }) {
   const { resumen } = turno;
   const efectivo = resumen.efectivoPorTipo;
   const ventasEfectivo = Number(efectivo.VENTA) + Number(efectivo.ANULACION);
+  const cobrosPedidos = Number(efectivo.COBRO_CONTRA_ENTREGA);
   const cerrado = turno.estado === 'CERRADO';
   return (
-    <div className="grid grid-cols-2 divide-borde sm:grid-cols-3 sm:divide-x lg:grid-cols-6">
+    <div className="grid grid-cols-2 divide-borde sm:grid-cols-4 sm:divide-x xl:grid-cols-7">
       <Indicador etiqueta="Monto inicial" valor={formatearMoneda(resumen.montoInicial)} />
       <Indicador
         etiqueta="Ventas en efectivo"
@@ -84,9 +85,14 @@ export function ResumenTurno({ turno }: { turno: TurnoCajaDetalle }) {
         }
       />
       <Indicador
+        etiqueta="Cobros de pedidos"
+        valor={formatearMoneda(cobrosPedidos)}
+        detalle="Contra entrega, en efectivo"
+      />
+      <Indicador
         etiqueta="Ventas con tarjeta"
         valor={formatearMoneda(resumen.porMetodo.TARJETA)}
-        detalle="No entra al arqueo"
+        detalle="Incluye pedidos; no entra al arqueo"
       />
       <Indicador
         etiqueta="Depósitos"

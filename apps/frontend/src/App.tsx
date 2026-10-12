@@ -35,6 +35,11 @@ const PuntoVenta = diferida(() => import('@/pages/ventas/PuntoVenta'), 'PuntoVen
 const Ventas = diferida(() => import('@/pages/ventas/Ventas'), 'Ventas');
 const DetalleVenta = diferida(() => import('@/pages/ventas/Ventas'), 'DetalleVenta');
 const Comprobante = diferida(() => import('@/pages/ventas/Comprobante'), 'Comprobante');
+const Clientes = diferida(() => import('@/pages/callcenter/Clientes'), 'Clientes');
+const DetalleCliente = diferida(() => import('@/pages/callcenter/Clientes'), 'DetalleCliente');
+const NuevoPedido = diferida(() => import('@/pages/callcenter/NuevoPedido'), 'NuevoPedido');
+const Pedidos = diferida(() => import('@/pages/pedidos/Pedidos'), 'Pedidos');
+const DetallePedido = diferida(() => import('@/pages/pedidos/DetallePedido'), 'DetallePedido');
 const DetalleTraslado = diferida(
   () => import('@/pages/traslados/DetalleTraslado'),
   'DetalleTraslado',
@@ -44,6 +49,7 @@ const TODOS: Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUD
 const ADMINISTRACION: Rol[] = ['ADMIN', 'AUDITOR'];
 const SUPERVISION: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
 const VENTAS: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
+const CALL_CENTER: Rol[] = ['ADMIN', 'AUDITOR', 'OPERADOR_CALL_CENTER'];
 
 const solo = (roles: Rol[], pantalla: ReactNode) => (
   <SoloRoles roles={roles}>
@@ -103,6 +109,14 @@ const router = createBrowserRouter([
       { path: 'caja/turnos/:id', element: solo(VENTAS, <DetalleTurno />) },
       { path: 'ventas', element: solo(VENTAS, <Ventas />) },
       { path: 'ventas/:id', element: solo(VENTAS, <DetalleVenta />) },
+      {
+        path: 'call-center/nuevo-pedido',
+        element: solo(['ADMIN', 'OPERADOR_CALL_CENTER'], <NuevoPedido />),
+      },
+      { path: 'call-center/clientes', element: solo(CALL_CENTER, <Clientes />) },
+      { path: 'call-center/clientes/:id', element: solo(CALL_CENTER, <DetalleCliente />) },
+      { path: 'pedidos', element: solo(TODOS, <Pedidos />) },
+      { path: 'pedidos/:id', element: solo(TODOS, <DetallePedido />) },
       { path: 'auditoria/bitacora', element: solo(ADMINISTRACION, <Bitacora />) },
       { path: 'admin/usuarios', element: solo(ADMINISTRACION, <Usuarios />) },
       { path: 'admin/ubicaciones', element: solo(ADMINISTRACION, <Ubicaciones />) },

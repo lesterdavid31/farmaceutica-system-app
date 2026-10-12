@@ -1,5 +1,8 @@
 import {
   Activity,
+  BookUser,
+  Headset,
+  PackageSearch,
   Banknote,
   ClipboardList,
   Receipt,
@@ -46,6 +49,24 @@ const VENTAS: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
 /** Menú lateral. Cada fase agrega sus módulos aquí; solo se muestran los que el usuario puede usar. */
 export const NAVEGACION: SeccionNavegacion[] = [
   { items: [{ ruta: '/', etiqueta: 'Inicio', icono: House, roles: TODOS }] },
+  {
+    titulo: 'Call center',
+    items: [
+      {
+        ruta: '/call-center/nuevo-pedido',
+        etiqueta: 'Nuevo pedido',
+        icono: Headset,
+        roles: ['ADMIN', 'OPERADOR_CALL_CENTER'],
+      },
+      { ruta: '/pedidos', etiqueta: 'Pedidos', icono: PackageSearch, roles: TODOS },
+      {
+        ruta: '/call-center/clientes',
+        etiqueta: 'Clientes',
+        icono: BookUser,
+        roles: ['ADMIN', 'AUDITOR', 'OPERADOR_CALL_CENTER'],
+      },
+    ],
+  },
   {
     titulo: 'Ventas y caja',
     items: [

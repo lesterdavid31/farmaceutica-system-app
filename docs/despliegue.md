@@ -24,15 +24,16 @@ Ventajas frente a dos proyectos separados: un solo dominio (el frontend llama a 
 2. Dejar el **Root Directory en la raíz** del repositorio: Vercel lee `vercel.json` y detecta los dos servicios.
 3. **Environment Variables** (Production y Preview):
 
-   | Variable       | Valor                                                                   |
-   | -------------- | ----------------------------------------------------------------------- |
-   | `DATABASE_URL` | Cadena _pooled_ de Neon                                                 |
-   | `DIRECT_URL`   | Cadena directa de Neon                                                  |
-   | `JWT_SECRET`   | Secreto aleatorio de al menos 32 caracteres, distinto del de desarrollo |
+   | Variable              | Valor                                                                               |
+   | --------------------- | ----------------------------------------------------------------------------------- |
+   | `DATABASE_URL`        | Cadena _pooled_ de Neon                                                             |
+   | `DIRECT_URL`          | Cadena directa de Neon                                                              |
+   | `JWT_SECRET`          | Secreto aleatorio de al menos 32 caracteres, distinto del de desarrollo             |
+   | `GOOGLE_MAPS_API_KEY` | Opcional. Key de Google Cloud con **Routes API** habilitada; restringirla a esa API |
 
    Generar el secreto con `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`. Si cambia, todas las sesiones abiertas se cierran.
 
-   No hacen falta `VITE_API_URL` ni `CORS_ORIGINS`: frontend y backend comparten dominio.
+   No hacen falta `VITE_API_URL` ni `CORS_ORIGINS`: frontend y backend comparten dominio. Sin `GOOGLE_MAPS_API_KEY` el call center funciona igual con tiempos estimados (haversine × 1.3); la key nunca llega al navegador.
 
 4. **Deploy.** Verificar:
    - `https://<proyecto>.vercel.app/`: pantalla _Estado del sistema_ con la API _En línea_ y la base de datos _Conectada_.
@@ -47,6 +48,7 @@ npx vercel link                      # vincula la carpeta con el proyecto
 npx vercel env add DATABASE_URL production,preview --sensitive --value "<pooled>"
 npx vercel env add DIRECT_URL production,preview --sensitive --value "<directa>"
 npx vercel env add JWT_SECRET production,preview --sensitive --value "<secreto>"
+npx vercel env add GOOGLE_MAPS_API_KEY production,preview --sensitive --value "<key>"   # opcional
 npx vercel deploy --prod             # o un push a main
 ```
 

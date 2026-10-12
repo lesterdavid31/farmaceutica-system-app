@@ -116,3 +116,20 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+
+/* Marcadores del mapa (Leaflet pinta SVG; los colores salen de los tokens). */
+.leaflet-container {
+  font-family: inherit;
+}
+.mapa-entrega {
+  stroke: var(--verde-botica);
+  fill: var(--verde-botica);
+}
+.mapa-sucursal {
+  stroke: var(--acero);
+  fill: var(--superficie);
+}
+.mapa-sucursal-destacada {
+  stroke: var(--acero);
+  fill: var(--acero);
+}

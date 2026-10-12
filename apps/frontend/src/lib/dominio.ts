@@ -37,6 +37,9 @@ export const ACCIONES_BITACORA: Record<string, string> = {
   CERRAR_CAJA: 'Cerrar caja',
   VENDER: 'Vender',
   ANULAR: 'Anular',
+  PREPARAR: 'Preparar pedido',
+  ASIGNAR: 'Asignar repartidor',
+  ENTREGAR: 'Entregar pedido',
 };
 
 export function etiquetaAccion(accion: string) {
@@ -471,4 +474,179 @@ export interface VentaDetalle extends VentaResumen {
     lote: { id: string; numeroLote: string; fechaVencimiento: string };
   }[];
   puedeAnular: boolean;
+}
+
+// ─── Call center ──────────────────────────────────────────────────────────────
+
+export type EstadoPedido =
+  'PENDIENTE' | 'EN_PREPARACION' | 'ASIGNADO' | 'EN_CAMINO' | 'ENTREGADO' | 'CANCELADO';
+export type MetodoPedido = 'CONTRA_ENTREGA' | 'TARJETA';
+export type AccionPedido = 'preparar' | 'asignar' | 'salir' | 'entregar' | 'cancelar';
+export type FuenteTiempo = 'google' | 'estimado' | 'mixta';
+
+export const ESTADOS_PEDIDO: Record<EstadoPedido, string> = {
+  PENDIENTE: 'Pendiente',
+  EN_PREPARACION: 'En preparación',
+  ASIGNADO: 'Asignado',
+  EN_CAMINO: 'En camino',
+  ENTREGADO: 'Entregado',
+  CANCELADO: 'Cancelado',
+};
+
+export const METODOS_PEDIDO: Record<MetodoPedido, string> = {
+  CONTRA_ENTREGA: 'Contra entrega (efectivo)',
+  TARJETA: 'Tarjeta al entregar',
+};
+
+export interface DireccionCliente {
+  id: string;
+  alias: string | null;
+  direccion: string;
+  referencia: string | null;
+  municipioId: string | null;
+  municipio?: { id: string; nombre: string } | null;
+  latitud: string;
+  longitud: string;
+  principal: boolean;
+  activa: boolean;
+}
+
+export interface Cliente {
+  id: string;
+  nombre: string;
+  telefono: string;
+  nit: string | null;
+  email: string | null;
+  activo: boolean;
+  direcciones: DireccionCliente[];
+  _count?: { pedidos: number };
+}
+
+export interface ClienteDetalle extends Cliente {
+  pedidos: {
+    id: string;
+    numero: number;
+    estado: EstadoPedido;
+    total: string;
+    fechaCompromiso: string;
+    createdAt: string;
+    ubicacionDespacho: { nombre: string };
+  }[];
+}
+
+export interface OpcionDisponibilidad {
+  ubicacion: UbicacionResumen & {
+    direccion: string;
+    telefono: string | null;
+    latitud: number;
+    longitud: number;
+  };
+  distanciaKm: number;
+  rutaMin: number;
+  fuente: 'google' | 'estimado';
+  tiempoEstimadoMin: number;
+  formasPago: MetodoPedido[];
+  cajaAbierta: boolean;
+}
+
+export interface RespuestaDisponibilidad {
+  destino: { latitud: number; longitud: number };
+  preparacionMin: number;
+  items: {
+    producto: {
+      id: string;
+      sku: string;
+      nombre: string;
+      presentacion: string;
+      precioVenta: string;
+      requiereReceta: boolean;
+    };
+    cantidad: number;
+    subtotal: string;
+  }[];
+  total: string;
+  opciones: OpcionDisponibilidad[];
+  mejorId: string | null;
+  sugerencia:
+    | (OpcionDisponibilidad & {
+        traslados: {
+          origen: { id: string; nombre: string; tipo: TipoUbicacion };
+          distanciaKm: number;
+          tiempoMin: number;
+          fuente: 'google' | 'estimado';
+          items: { productoId: string; cantidad: number; nombre: string }[];
+        }[];
+        sinCubrir: { productoId: string; cantidad: number; nombre: string }[];
+      })
+    | null;
+  fuente: FuenteTiempo;
+}
+
+export interface Repartidor {
+  id: string;
+  nombres: string;
+  apellidos: string;
+}
+
+export interface PedidoResumen {
+  id: string;
+  numero: number;
+  estado: EstadoPedido;
+  metodoPago: MetodoPedido;
+  total: string;
+  tiempoEstimadoMin: number;
+  distanciaKm: string;
+  fuenteEstimacion: 'google' | 'estimado';
+  fechaCompromiso: string;
+  fechaEntrega: string | null;
+  createdAt: string;
+  ubicacionDespachoId: string;
+  cliente: { id: string; nombre: string; telefono: string };
+  ubicacionDespacho: UbicacionResumen;
+  entrega: { repartidor: Repartidor; horaSalida: string | null; horaEntrega: string | null } | null;
+  atrasado: boolean;
+  minutosAtraso: number;
+  acciones: AccionPedido[];
+  _count: { detalles: number };
+}
+
+export interface PedidoDetalle extends Omit<
+  PedidoResumen,
+  '_count' | 'cliente' | 'ubicacionDespacho'
+> {
+  observaciones: string | null;
+  motivoCancelacion: string | null;
+  cliente: { id: string; nombre: string; telefono: string; nit: string | null };
+  direccion: DireccionCliente & { municipio: { nombre: string } | null };
+  ubicacionDespacho: UbicacionResumen & { direccion: string; telefono: string | null };
+  operador: { id: string; nombre: string };
+  detalles: {
+    id: string;
+    cantidad: number;
+    precioUnitario: string;
+    subtotal: string;
+    producto: { id: string; sku: string; nombre: string; presentacion: string };
+  }[];
+  historial: {
+    id: string;
+    estadoAnterior: EstadoPedido | null;
+    estadoNuevo: EstadoPedido;
+    nota: string | null;
+    createdAt: string;
+    usuario: { id: string; nombre: string };
+  }[];
+  entrega: (PedidoResumen['entrega'] & { notas: string | null }) | null;
+  venta: {
+    id: string;
+    numero: number;
+    estado: EstadoVenta;
+    pagos: { metodo: MetodoPago; monto: string; referencia: string | null }[];
+  } | null;
+  traslados: {
+    id: string;
+    numero: number;
+    estado: EstadoTraslado;
+    origen: { id: string; nombre: string };
+  }[];
+  cajaAbierta: boolean;
 }
