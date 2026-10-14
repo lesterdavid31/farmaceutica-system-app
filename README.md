@@ -51,15 +51,15 @@ npm run dev:frontend   # http://localhost:5173
 
 ## Scripts
 
-| Comando                                 | Qué hace                                                                                                                   |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `npm run lint`                          | ESLint en ambas apps                                                                                                       |
-| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                                                        |
-| `npm test`                              | Pruebas unitarias (Jest) de la API                                                                                         |
-| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario, traslados, caja, ventas y call center) |
-| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                                                |
-| `npm run build`                         | Build de producción de ambas apps                                                                                          |
-| `npm run format`                        | Formatea con Prettier                                                                                                      |
+| Comando                                 | Qué hace                                                                                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run lint`                          | ESLint en ambas apps                                                                                                                          |
+| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                                                                           |
+| `npm test`                              | Pruebas unitarias (Jest) de la API                                                                                                            |
+| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario, traslados, caja, ventas, call center, planilla y activos) |
+| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                                                                   |
+| `npm run build`                         | Build de producción de ambas apps                                                                                                             |
+| `npm run format`                        | Formatea con Prettier                                                                                                                         |
 
 ## Usuarios de prueba
 
@@ -143,6 +143,31 @@ Todos usan la contraseña **`Farmacia2026!`**.
   - Escuintla: uno en preparación.
   - Huehuetenango: uno que espera un traslado de MED-0014.
   - Zacapa: uno cancelado.
+
+## Planilla
+
+- **Empleados:** el gerente gestiona los de su sucursal y el administrador, los de todas; solo el administrador los cambia de ubicación. Se desactivan, no se borran. Pueden vincularse a su usuario del sistema; los repartidores no tienen usuario.
+- **Generar:** una planilla mensual por ubicación con los empleados activos que ingresaron antes de terminar el mes. La bonificación incentivo y el porcentaje de IGSS salen de la configuración (Q250 y 4.83 % por defecto). No se generan meses futuros.
+- **Cálculo (RN-22):**
+  - IGSS = salario base × porcentaje, redondeado al centavo. La bonificación no cotiza.
+  - Líquido = salario + bonificación − IGSS − otros descuentos.
+  - La base de datos verifica con un CHECK que el líquido cuadre y no sea negativo.
+- **Borrador y cierre (RN-23):**
+  - En borrador se editan la bonificación y los otros descuentos de cada línea, y el total se recalcula.
+  - Un borrador se puede eliminar para volver a generarlo.
+  - Una planilla cerrada no se modifica ni se borra: lo impide el servicio y además un trigger en la base de datos.
+- **Reporte:** gasto por mes y por ubicación con el consolidado. Solo cuentan las planillas cerradas; los borradores se muestran aparte.
+
+## Activos fijos
+
+- **Depreciación lineal (RN-24):** mensual = (costo − valor residual) / vida útil en meses.
+  - Se cuentan los **meses completos** desde la adquisición: un mes se completa el mismo día del mes siguiente, o el último día si ese día no existe.
+  - La acumulada es (costo − residual) × meses / vida útil, redondeada al centavo. Al terminar la vida útil, el valor en libros queda exactamente en el residual.
+- **Categorías (RN-25):** la vida útil por defecto se puede editar y se usa al registrar un activo sin vida útil propia. Cambiarla no altera los activos ya registrados.
+- **Traslados (RN-26):** la ubicación de un activo solo cambia con un traslado con motivo, que queda en un historial inmutable. Los activos dados de baja no se trasladan.
+- **Reporte:** valor en libros a cualquier fecha, por ubicación y por categoría, con la depreciación acumulada. Cada activo aparece en la ubicación que tenía en esa fecha según su historial. Se excluyen los adquiridos después de la fecha y los dados de baja.
+- **Permisos:** solo el administrador registra, edita, traslada y da de baja; el auditor consulta todo y el gerente, los de su sucursal.
+- **Seed:** el gerente y el cajero de cada sucursal como empleados, un bodeguero, planillas cerradas de agosto y septiembre de 2026 en las 9 ubicaciones, 30 activos y un traslado de un equipo de cómputo de la bodega a Zacapa.
 
 ## Despliegue
 

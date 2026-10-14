@@ -1,5 +1,10 @@
 import {
   Activity,
+  BadgeDollarSign,
+  Building,
+  ChartColumn,
+  Contact,
+  FileSpreadsheet,
   BookUser,
   Headset,
   PackageSearch,
@@ -95,6 +100,36 @@ export const NAVEGACION: SeccionNavegacion[] = [
         visible: (u) => u.rol !== 'GERENTE' || esGerenteBodega(u),
       },
       { ruta: '/traslados', etiqueta: 'Traslados', icono: ArrowLeftRight, roles: SUPERVISION },
+    ],
+  },
+  {
+    titulo: 'Planilla',
+    items: [
+      { ruta: '/planilla/empleados', etiqueta: 'Empleados', icono: Contact, roles: SUPERVISION },
+      {
+        ruta: '/planilla/planillas',
+        etiqueta: 'Planillas',
+        icono: BadgeDollarSign,
+        roles: SUPERVISION,
+      },
+      {
+        ruta: '/planilla/reporte',
+        etiqueta: 'Reporte de planilla',
+        icono: FileSpreadsheet,
+        roles: SUPERVISION,
+      },
+    ],
+  },
+  {
+    titulo: 'Activos fijos',
+    items: [
+      { ruta: '/activos', etiqueta: 'Activos', icono: Building, roles: SUPERVISION, fin: true },
+      {
+        ruta: '/activos/reporte',
+        etiqueta: 'Reporte de activos',
+        icono: ChartColumn,
+        roles: SUPERVISION,
+      },
     ],
   },
   {

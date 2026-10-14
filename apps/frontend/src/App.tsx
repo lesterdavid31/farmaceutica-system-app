@@ -40,6 +40,16 @@ const DetalleCliente = diferida(() => import('@/pages/callcenter/Clientes'), 'De
 const NuevoPedido = diferida(() => import('@/pages/callcenter/NuevoPedido'), 'NuevoPedido');
 const Pedidos = diferida(() => import('@/pages/pedidos/Pedidos'), 'Pedidos');
 const DetallePedido = diferida(() => import('@/pages/pedidos/DetallePedido'), 'DetallePedido');
+const Empleados = diferida(() => import('@/pages/planilla/Empleados'), 'Empleados');
+const Planillas = diferida(() => import('@/pages/planilla/Planillas'), 'Planillas');
+const DetallePlanilla = diferida(() => import('@/pages/planilla/Planillas'), 'DetallePlanilla');
+const ReportePlanilla = diferida(
+  () => import('@/pages/planilla/ReportePlanilla'),
+  'ReportePlanilla',
+);
+const Activos = diferida(() => import('@/pages/activos/Activos'), 'Activos');
+const DetalleActivo = diferida(() => import('@/pages/activos/Activos'), 'DetalleActivo');
+const ReporteActivos = diferida(() => import('@/pages/activos/ReporteActivos'), 'ReporteActivos');
 const DetalleTraslado = diferida(
   () => import('@/pages/traslados/DetalleTraslado'),
   'DetalleTraslado',
@@ -117,6 +127,13 @@ const router = createBrowserRouter([
       { path: 'call-center/clientes/:id', element: solo(CALL_CENTER, <DetalleCliente />) },
       { path: 'pedidos', element: solo(TODOS, <Pedidos />) },
       { path: 'pedidos/:id', element: solo(TODOS, <DetallePedido />) },
+      { path: 'planilla/empleados', element: solo(SUPERVISION, <Empleados />) },
+      { path: 'planilla/planillas', element: solo(SUPERVISION, <Planillas />) },
+      { path: 'planilla/planillas/:id', element: solo(SUPERVISION, <DetallePlanilla />) },
+      { path: 'planilla/reporte', element: solo(SUPERVISION, <ReportePlanilla />) },
+      { path: 'activos', element: solo(SUPERVISION, <Activos />) },
+      { path: 'activos/reporte', element: solo(SUPERVISION, <ReporteActivos />) },
+      { path: 'activos/:id', element: solo(SUPERVISION, <DetalleActivo />) },
       { path: 'auditoria/bitacora', element: solo(ADMINISTRACION, <Bitacora />) },
       { path: 'admin/usuarios', element: solo(ADMINISTRACION, <Usuarios />) },
       { path: 'admin/ubicaciones', element: solo(ADMINISTRACION, <Ubicaciones />) },

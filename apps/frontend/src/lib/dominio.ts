@@ -40,6 +40,11 @@ export const ACCIONES_BITACORA: Record<string, string> = {
   PREPARAR: 'Preparar pedido',
   ASIGNAR: 'Asignar repartidor',
   ENTREGAR: 'Entregar pedido',
+  GENERAR: 'Generar',
+  EDITAR_LINEA: 'Editar línea',
+  CERRAR: 'Cerrar',
+  DAR_DE_BAJA: 'Dar de baja',
+  TRASLADAR: 'Trasladar',
 };
 
 export function etiquetaAccion(accion: string) {
@@ -649,4 +654,167 @@ export interface PedidoDetalle extends Omit<
     origen: { id: string; nombre: string };
   }[];
   cajaAbierta: boolean;
+}
+
+// ─── Planilla ─────────────────────────────────────────────────────────────────
+
+export type Puesto = 'GERENTE' | 'CAJERO' | 'REPARTIDOR' | 'BODEGUERO' | 'OPERADOR' | 'OTRO';
+export type EstadoPlanilla = 'BORRADOR' | 'CERRADA';
+
+export const PUESTOS: Record<Puesto, string> = {
+  GERENTE: 'Gerente',
+  CAJERO: 'Cajero',
+  REPARTIDOR: 'Repartidor',
+  BODEGUERO: 'Bodeguero',
+  OPERADOR: 'Operador',
+  OTRO: 'Otro',
+};
+
+export const MESES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
+
+export interface Empleado {
+  id: string;
+  nombres: string;
+  apellidos: string;
+  dpi: string;
+  puesto: Puesto;
+  salarioBase: string;
+  ubicacionId: string;
+  fechaIngreso: string;
+  activo: boolean;
+  usuarioId: string | null;
+  ubicacion: UbicacionResumen;
+  usuario: { id: string; nombre: string; email: string; rol: Rol } | null;
+}
+
+export interface PlanillaResumen {
+  id: string;
+  ubicacionId: string;
+  mes: number;
+  anio: number;
+  estado: EstadoPlanilla;
+  total: string;
+  fechaCierre: string | null;
+  ubicacion: UbicacionResumen;
+  cerradaPor: { id: string; nombre: string } | null;
+  _count: { detalles: number };
+}
+
+export interface LineaPlanilla {
+  id: string;
+  salarioBase: string;
+  bonificacion: string;
+  igss: string;
+  otrosDescuentos: string;
+  liquido: string;
+  empleado: { id: string; nombres: string; apellidos: string; dpi: string; puesto: Puesto };
+}
+
+export interface PlanillaDetalle extends Omit<PlanillaResumen, '_count'> {
+  detalles: LineaPlanilla[];
+  totales: Record<'salarioBase' | 'bonificacion' | 'igss' | 'otrosDescuentos' | 'liquido', string>;
+}
+
+export interface ReportePlanilla {
+  anio: number;
+  ubicaciones: {
+    ubicacion: UbicacionResumen;
+    meses: Record<number, { id: string; total: string; estado: EstadoPlanilla; empleados: number }>;
+    total: string;
+  }[];
+  consolidado: Record<number, string>;
+  total: string;
+  borradores: number;
+}
+
+// ─── Activos fijos ────────────────────────────────────────────────────────────
+
+export interface CategoriaActivo {
+  id: string;
+  nombre: string;
+  vidaUtilMeses: number;
+  _count?: { activos: number };
+}
+
+export interface Depreciacion {
+  mesesTranscurridos: number;
+  mesesDepreciados: number;
+  depreciacionMensual: string;
+  depreciacionAcumulada: string;
+  valorEnLibros: string;
+  totalmenteDepreciado: boolean;
+}
+
+export interface ActivoFijo {
+  id: string;
+  codigo: string;
+  descripcion: string;
+  categoriaId: string;
+  ubicacionId: string;
+  fechaAdquisicion: string;
+  costo: string;
+  valorResidual: string;
+  vidaUtilMeses: number;
+  activo: boolean;
+  categoria: { id: string; nombre: string; vidaUtilMeses: number };
+  ubicacion: UbicacionResumen;
+  depreciacion: Depreciacion;
+}
+
+export interface ActivoDetalle extends ActivoFijo {
+  fechaFinVidaUtil: string;
+  calendario: {
+    anio: number;
+    depreciacionAnio: string;
+    depreciacionAcumulada: string;
+    valorEnLibros: string;
+  }[];
+  historialUbicaciones: {
+    id: string;
+    motivo: string | null;
+    createdAt: string;
+    ubicacionOrigen: UbicacionResumen | null;
+    ubicacionDestino: UbicacionResumen;
+    usuario: { id: string; nombre: string };
+  }[];
+}
+
+interface Acumulado {
+  cantidad: number;
+  costo: string;
+  depreciacionAcumulada: string;
+  valorEnLibros: string;
+}
+
+export interface ReporteActivos {
+  fecha: string;
+  porUbicacion: (Acumulado & { ubicacion: UbicacionResumen })[];
+  porCategoria: (Acumulado & { categoria: { id: string; nombre: string } })[];
+  totales: Acumulado;
+  activos: {
+    id: string;
+    codigo: string;
+    descripcion: string;
+    categoria: { id: string; nombre: string };
+    ubicacion: UbicacionResumen;
+    fechaAdquisicion: string;
+    costo: string;
+    mesesDepreciados: number;
+    vidaUtilMeses: number;
+    depreciacionAcumulada: string;
+    valorEnLibros: string;
+  }[];
 }
