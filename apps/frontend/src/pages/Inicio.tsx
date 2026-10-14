@@ -5,8 +5,8 @@ import { ROLES } from '@/lib/dominio';
 import { navegacionPara } from '@/layout/navegacion';
 
 /**
- * Pantalla de inicio. Los dashboards ejecutivo y de sucursal (RF-32 y RF-37) se construyen en la
- * fase 7; por ahora muestra el alcance del usuario y accesos directos a sus módulos.
+ * Pantalla de inicio del cajero y del operador: su alcance y accesos directos a sus módulos.
+ * ADMIN, AUDITOR y GERENTE ven en su lugar el dashboard (RF-32, RF-37).
  */
 export function Inicio() {
   const usuario = useUsuario();

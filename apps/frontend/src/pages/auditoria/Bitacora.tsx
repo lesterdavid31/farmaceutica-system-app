@@ -26,6 +26,8 @@ import { useCatalogo, useListado } from '@/lib/consultas';
 import { etiquetaAccion, ROLES, type RegistroBitacora, type Usuario } from '@/lib/dominio';
 import { formatearFechaHora } from '@/lib/formato';
 import { cn } from '@/lib/utils';
+import { BotonCsv } from '@/components/BotonCsv';
+import { descargarCsv, fechaCsv, obtenerTodas } from '@/lib/csv';
 
 function tonoAccion(accion: string): TonoEstado {
   if (accion === 'LOGIN_FALLIDO' || accion === 'ELIMINAR' || accion.startsWith('ANULA')) {
@@ -186,6 +188,32 @@ export function Bitacora() {
               className="w-40"
               value={listado.filtros.hasta}
               onChange={(e) => listado.setFiltro('hasta', e.target.value)}
+            />
+          </div>
+          <div className="ml-auto self-end">
+            <BotonCsv
+              exportar={async () =>
+                descargarCsv(
+                  'bitacora',
+                  [
+                    { titulo: 'Fecha', valor: (r) => fechaCsv(r.createdAt) },
+                    { titulo: 'Usuario', valor: (r) => r.usuario?.email ?? '' },
+                    { titulo: 'Acción', valor: (r) => r.accion },
+                    { titulo: 'Entidad', valor: (r) => r.entidad },
+                    { titulo: 'Id', valor: (r) => r.entidadId },
+                    { titulo: 'IP', valor: (r) => r.ip },
+                    {
+                      titulo: 'Datos antes',
+                      valor: (r) => (r.datosAntes ? JSON.stringify(r.datosAntes) : ''),
+                    },
+                    {
+                      titulo: 'Datos después',
+                      valor: (r) => (r.datosDespues ? JSON.stringify(r.datosDespues) : ''),
+                    },
+                  ],
+                  await obtenerTodas<RegistroBitacora>('/bitacora', listado.filtros),
+                )
+              }
             />
           </div>
         </BarraFiltros>

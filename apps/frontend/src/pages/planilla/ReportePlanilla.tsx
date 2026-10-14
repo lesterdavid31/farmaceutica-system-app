@@ -25,6 +25,8 @@ import { api, query } from '@/lib/api';
 import { MESES, type ReportePlanilla as Reporte } from '@/lib/dominio';
 import { formatearMoneda } from '@/lib/formato';
 import { cn } from '@/lib/utils';
+import { BotonCsv } from '@/components/BotonCsv';
+import { descargarCsv } from '@/lib/csv';
 
 const corto = (n: number) => MESES[n - 1].slice(0, 3);
 const miles = (v: string | number) =>
@@ -53,9 +55,41 @@ export function ReportePlanilla() {
         titulo="Reporte de planilla"
         descripcion="Total líquido pagado por mes y por ubicación. Solo cuentan las planillas cerradas."
         acciones={
-          <Button asChild>
-            <Link to="/planilla/planillas">Ver planillas</Link>
-          </Button>
+          <>
+            {r && (
+              <BotonCsv
+                exportar={() =>
+                  descargarCsv(
+                    `planilla-${r.anio}`,
+                    [
+                      { titulo: 'Ubicación', valor: (f) => f.nombre },
+                      ...meses.map((m) => ({
+                        titulo: MESES[m - 1],
+                        valor: (f: { meses: Record<number, string> }) => f.meses[m] ?? '',
+                      })),
+                      { titulo: 'Total (Q)', valor: (f) => f.total },
+                    ],
+                    [
+                      ...r.ubicaciones.map((u) => ({
+                        nombre: u.ubicacion.nombre,
+                        // Solo las planillas cerradas, igual que el total.
+                        meses: Object.fromEntries(
+                          meses
+                            .filter((m) => u.meses[m]?.estado === 'CERRADA')
+                            .map((m) => [m, u.meses[m].total]),
+                        ) as Record<number, string>,
+                        total: u.total,
+                      })),
+                      { nombre: 'Consolidado', meses: r.consolidado, total: r.total },
+                    ],
+                  )
+                }
+              />
+            )}
+            <Button asChild>
+              <Link to="/planilla/planillas">Ver planillas</Link>
+            </Button>
+          </>
         }
       />
       <Panel>

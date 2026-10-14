@@ -20,6 +20,8 @@ import { useCatalogo, useMutacion } from '@/lib/consultas';
 import type { Alertas as RespuestaAlertas, ExistenciaAlerta, Ubicacion } from '@/lib/dominio';
 import type { PrecargaTraslado } from '@/pages/traslados/NuevoTraslado';
 import { formatearFecha, formatearMoneda } from '@/lib/formato';
+import { BotonCsv } from '@/components/BotonCsv';
+import { descargarCsv, diaCsv } from '@/lib/csv';
 
 function Seccion({
   titulo,
@@ -100,6 +102,56 @@ export function Alertas() {
           consulta.data
             ? `Lotes vencidos, lotes que vencen en los próximos ${consulta.data.diasAlerta} días y productos bajo el stock mínimo.`
             : 'Lotes vencidos, próximos a vencer y productos bajo el stock mínimo.'
+        }
+        acciones={
+          consulta.data && (
+            <BotonCsv
+              exportar={() => {
+                const d = consulta.data;
+                const lotes = (alerta: string, lista: ExistenciaAlerta[]) =>
+                  lista.map((e) => ({
+                    alerta,
+                    producto: e.lote.producto.nombre,
+                    sku: e.lote.producto.sku,
+                    lote: e.lote.numeroLote,
+                    vencimiento: diaCsv(e.lote.fechaVencimiento),
+                    ubicacion: e.ubicacion.nombre,
+                    cantidad: e.cantidad,
+                    minimo: '',
+                    sugerido: '',
+                  }));
+                descargarCsv(
+                  'alertas-de-inventario',
+                  [
+                    { titulo: 'Alerta', valor: (f) => f.alerta },
+                    { titulo: 'SKU', valor: (f) => f.sku },
+                    { titulo: 'Producto', valor: (f) => f.producto },
+                    { titulo: 'Lote', valor: (f) => f.lote },
+                    { titulo: 'Vencimiento', valor: (f) => f.vencimiento },
+                    { titulo: 'Ubicación', valor: (f) => f.ubicacion },
+                    { titulo: 'Cantidad', valor: (f) => f.cantidad },
+                    { titulo: 'Stock mínimo', valor: (f) => f.minimo },
+                    { titulo: 'Sugerido', valor: (f) => f.sugerido },
+                  ],
+                  [
+                    ...lotes('Vencido', d.vencidos),
+                    ...lotes('Por vencer', d.porVencer),
+                    ...d.bajoMinimo.map((b) => ({
+                      alerta: 'Bajo stock mínimo',
+                      producto: b.producto.nombre,
+                      sku: b.producto.sku,
+                      lote: '',
+                      vencimiento: '',
+                      ubicacion: b.ubicacion.nombre,
+                      cantidad: b.vigente,
+                      minimo: String(b.cantidadMinima),
+                      sugerido: String(b.sugerido),
+                    })),
+                  ],
+                );
+              }}
+            />
+          )
         }
       />
       {consulta.isPending ? (

@@ -51,15 +51,15 @@ npm run dev:frontend   # http://localhost:5173
 
 ## Scripts
 
-| Comando                                 | Qué hace                                                                                                                                      |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run lint`                          | ESLint en ambas apps                                                                                                                          |
-| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                                                                           |
-| `npm test`                              | Pruebas unitarias (Jest) de la API                                                                                                            |
-| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario, traslados, caja, ventas, call center, planilla y activos) |
-| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                                                                   |
-| `npm run build`                         | Build de producción de ambas apps                                                                                                             |
-| `npm run format`                        | Formatea con Prettier                                                                                                                         |
+| Comando                                 | Qué hace                                                                                                                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run lint`                          | ESLint en ambas apps                                                                                                                                    |
+| `npm run typecheck`                     | Verificación de tipos de TypeScript                                                                                                                     |
+| `npm test`                              | Pruebas unitarias (Jest) de la API                                                                                                                      |
+| `npm run test:e2e -w @farmacia/backend` | Pruebas de punta a punta contra la base de datos con el seed (permisos, inventario, traslados, caja, ventas, call center, planilla, activos y reportes) |
+| `npm run seed -w @farmacia/backend`     | Carga o actualiza los datos de demostración                                                                                                             |
+| `npm run build`                         | Build de producción de ambas apps                                                                                                                       |
+| `npm run format`                        | Formatea con Prettier                                                                                                                                   |
 
 ## Usuarios de prueba
 
@@ -168,6 +168,27 @@ Todos usan la contraseña **`Farmacia2026!`**.
 - **Reporte:** valor en libros a cualquier fecha, por ubicación y por categoría, con la depreciación acumulada. Cada activo aparece en la ubicación que tenía en esa fecha según su historial. Se excluyen los adquiridos después de la fecha y los dados de baja.
 - **Permisos:** solo el administrador registra, edita, traslada y da de baja; el auditor consulta todo y el gerente, los de su sucursal.
 - **Seed:** el gerente y el cajero de cada sucursal como empleados, un bodeguero, planillas cerradas de agosto y septiembre de 2026 en las 9 ubicaciones, 30 activos y un traslado de un equipo de cómputo de la bodega a Zacapa.
+
+## Dashboards y auditoría
+
+- **Dashboard ejecutivo** (ADMIN y AUDITOR, filtrable con el selector de ubicación) y **de sucursal** (GERENTE, su ubicación):
+  - primero "Requiere atención hoy": pedidos atrasados, lotes vencidos y por vencer, stock bajo y cajas con diferencia en los últimos 7 días, con enlaces;
+  - luego los indicadores: ventas del día, mes y año, inventario a costo, valor de los activos y gasto en planilla del mes (o del último mes cerrado);
+  - al final, las gráficas de ventas por día (30 días) e ingresos del mes por sucursal y método de pago.
+  - El cajero y el operador entran a la lista de sus módulos.
+- **Flujo de efectivo:** consolidado y por sucursal en un rango de fechas.
+  - Ingresos netos por método (ventas y cobros de pedidos menos anulaciones), depósitos, gastos, retiros y neto en efectivo.
+  - Sobrantes y faltantes de los turnos cerrados en el período, y el detalle de los turnos.
+- **Movimiento de medicamentos:** kardex global de todos los productos, con resumen por tipo de movimiento, y traslados por ruta (origen → destino) con estados, unidades, faltantes de recepción y valor enviado.
+- **Bitácora:** consultable por usuario, entidad, acción y fechas.
+- **Exportar CSV:** en el dashboard, el flujo de efectivo, el movimiento de medicamentos, el kardex, las alertas, los turnos, las ventas, la bitácora y los reportes de planilla y activos.
+  - Los listados paginados se exportan completos, hasta 5,000 filas.
+  - El archivo lleva BOM UTF-8 (para que Excel muestre las tildes) y montos sin formato.
+- **Cálculos:** todas las sumas se hacen en SQL y los días se cortan con la hora de Guatemala (UTC−6). Las pruebas e2e recalculan cada indicador por otro camino y verifican que coincida con los datos del seed.
+- **Gráficas:** usan Recharts con la paleta de la sección 8.1.
+  - Validada con el script de la guía de visualización: separación para daltonismo ΔE 21.8.
+  - Las series 2 y 4 tienen contraste bajo contra el fondo, así que cada gráfica lleva leyenda, etiquetas de total y una vista de tabla.
+  - Las barras no se animan.
 
 ## Despliegue
 

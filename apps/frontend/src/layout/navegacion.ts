@@ -1,5 +1,7 @@
 import {
   Activity,
+  ArrowDownUp,
+  Wallet,
   BadgeDollarSign,
   Building,
   ChartColumn,
@@ -135,6 +137,18 @@ export const NAVEGACION: SeccionNavegacion[] = [
   {
     titulo: 'Auditoría',
     items: [
+      {
+        ruta: '/auditoria/flujo-efectivo',
+        etiqueta: 'Flujo de efectivo',
+        icono: Wallet,
+        roles: SUPERVISION,
+      },
+      {
+        ruta: '/auditoria/movimientos',
+        etiqueta: 'Movimiento de medicamentos',
+        icono: ArrowDownUp,
+        roles: SUPERVISION,
+      },
       {
         ruta: '/auditoria/bitacora',
         etiqueta: 'Bitácora',

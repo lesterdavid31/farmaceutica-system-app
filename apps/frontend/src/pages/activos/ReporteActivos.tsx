@@ -24,6 +24,8 @@ import {
 import { api, query } from '@/lib/api';
 import type { ReporteActivos as Reporte } from '@/lib/dominio';
 import { formatearFecha, formatearMoneda } from '@/lib/formato';
+import { BotonCsv } from '@/components/BotonCsv';
+import { descargarCsv, diaCsv } from '@/lib/csv';
 
 function hoyLocal() {
   const d = new Date();
@@ -117,9 +119,36 @@ export function ReporteActivos() {
         titulo="Reporte de activos fijos"
         descripcion="Valor en libros a la fecha elegida. Cada activo aparece en la ubicación que tenía ese día."
         acciones={
-          <Button asChild>
-            <Link to="/activos">Ver activos</Link>
-          </Button>
+          <>
+            {r && (
+              <BotonCsv
+                exportar={() =>
+                  descargarCsv(
+                    `activos-al-${fecha}`,
+                    [
+                      { titulo: 'Código', valor: (a) => a.codigo },
+                      { titulo: 'Descripción', valor: (a) => a.descripcion },
+                      { titulo: 'Categoría', valor: (a) => a.categoria.nombre },
+                      { titulo: 'Ubicación', valor: (a) => a.ubicacion.nombre },
+                      { titulo: 'Adquisición', valor: (a) => diaCsv(a.fechaAdquisicion) },
+                      { titulo: 'Costo (Q)', valor: (a) => a.costo },
+                      { titulo: 'Meses depreciados', valor: (a) => a.mesesDepreciados },
+                      { titulo: 'Vida útil (meses)', valor: (a) => a.vidaUtilMeses },
+                      {
+                        titulo: 'Depreciación acumulada (Q)',
+                        valor: (a) => a.depreciacionAcumulada,
+                      },
+                      { titulo: 'Valor en libros (Q)', valor: (a) => a.valorEnLibros },
+                    ],
+                    r.activos,
+                  )
+                }
+              />
+            )}
+            <Button asChild>
+              <Link to="/activos">Ver activos</Link>
+            </Button>
+          </>
         }
       />
       <Panel className="mb-6">

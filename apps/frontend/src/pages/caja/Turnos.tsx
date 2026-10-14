@@ -27,6 +27,8 @@ import { useListado } from '@/lib/consultas';
 import type { TurnoCajaDetalle, TurnoCajaResumen } from '@/lib/dominio';
 import { formatearFechaHora, formatearMoneda } from '@/lib/formato';
 import { BadgeDiferencia, ResumenTurno, TablaMovimientos } from './componentes';
+import { BotonCsv } from '@/components/BotonCsv';
+import { descargarCsv, fechaCsv, obtenerTodas } from '@/lib/csv';
 
 export function Turnos() {
   const navegar = useNavigate();
@@ -93,6 +95,30 @@ export function Turnos() {
             />
             Solo con diferencia
           </label>
+          <div className="ml-auto self-end">
+            <BotonCsv
+              exportar={async () =>
+                descargarCsv(
+                  'turnos-de-caja',
+                  [
+                    { titulo: 'Ubicación', valor: (t) => t.ubicacion.nombre },
+                    { titulo: 'Cajero', valor: (t) => t.cajero.nombre },
+                    { titulo: 'Apertura', valor: (t) => fechaCsv(t.apertura) },
+                    { titulo: 'Cierre', valor: (t) => fechaCsv(t.cierre) },
+                    { titulo: 'Ventas', valor: (t) => t._count.ventas },
+                    { titulo: 'Monto inicial (Q)', valor: (t) => t.montoInicial },
+                    { titulo: 'Esperado (Q)', valor: (t) => t.efectivoEsperado },
+                    { titulo: 'Contado (Q)', valor: (t) => t.efectivoContado },
+                    { titulo: 'Diferencia (Q)', valor: (t) => t.diferencia },
+                  ],
+                  await obtenerTodas<TurnoCajaResumen>('/caja/turnos', {
+                    ...listado.filtros,
+                    ...(esGlobal(usuario) && { ubicacionId }),
+                  }),
+                )
+              }
+            />
+          </div>
         </BarraFiltros>
         {listado.isPending ? (
           <Cargando />

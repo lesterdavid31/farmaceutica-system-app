@@ -40,6 +40,8 @@ import {
 } from '@/lib/dominio';
 import { formatearFechaHora, formatearMoneda } from '@/lib/formato';
 import { vigenciaLocal } from '@/lib/vigencia';
+import { BotonCsv } from '@/components/BotonCsv';
+import { descargarCsv, fechaCsv, obtenerTodas } from '@/lib/csv';
 
 export function BadgeVenta({ estado }: { estado: EstadoVenta }) {
   return (
@@ -160,6 +162,34 @@ export function Ventas() {
               className="w-40"
               value={listado.filtros.hasta}
               onChange={(e) => listado.setFiltro('hasta', e.target.value)}
+            />
+          </div>
+          <div className="ml-auto self-end">
+            <BotonCsv
+              exportar={async () =>
+                descargarCsv(
+                  'ventas',
+                  [
+                    { titulo: 'Número', valor: (v) => v.numero },
+                    { titulo: 'Fecha', valor: (v) => fechaCsv(v.createdAt) },
+                    { titulo: 'Ubicación', valor: (v) => v.ubicacion.nombre },
+                    { titulo: 'Canal', valor: (v) => CANALES_VENTA[v.canal] },
+                    { titulo: 'NIT', valor: (v) => v.nit },
+                    {
+                      titulo: 'Pago',
+                      valor: (v) => v.pagos.map((p) => METODOS_PAGO[p.metodo]).join(' + '),
+                    },
+                    { titulo: 'Total (Q)', valor: (v) => v.total },
+                    { titulo: 'Estado', valor: (v) => ESTADOS_VENTA[v.estado] },
+                    { titulo: 'Usuario', valor: (v) => v.usuario.nombre },
+                  ],
+                  await obtenerTodas<VentaResumen>('/ventas', {
+                    ...listado.filtros,
+                    ...(esGlobal(usuario) && { ubicacionId }),
+                    turnoCajaId,
+                  }),
+                )
+              }
             />
           </div>
         </BarraFiltros>

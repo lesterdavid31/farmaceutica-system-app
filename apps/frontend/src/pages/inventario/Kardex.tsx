@@ -37,6 +37,8 @@ import {
 import { formatearFechaHora, formatearMoneda } from '@/lib/formato';
 import { vigenciaLocal } from '@/lib/vigencia';
 import { cn } from '@/lib/utils';
+import { BotonCsv } from '@/components/BotonCsv';
+import { descargarCsv, diaCsv, fechaCsv, obtenerTodas } from '@/lib/csv';
 
 const TONO_MOVIMIENTO: Record<TipoMovimientoInventario, TonoEstado> = {
   COMPRA: 'correcto',
@@ -90,6 +92,32 @@ function TablaKardex({ productoId, ubicacionId }: { productoId: string; ubicacio
             className="w-40"
             value={listado.filtros.hasta}
             onChange={(e) => listado.setFiltro('hasta', e.target.value)}
+          />
+        </div>
+        <div className="ml-auto self-end">
+          <BotonCsv
+            exportar={async () =>
+              descargarCsv(
+                'kardex',
+                [
+                  { titulo: 'Fecha', valor: (m) => fechaCsv(m.fecha) },
+                  { titulo: 'Movimiento', valor: (m) => TIPOS_MOVIMIENTO[m.tipo] },
+                  { titulo: 'Lote', valor: (m) => m.lote.numeroLote },
+                  { titulo: 'Vencimiento', valor: (m) => diaCsv(m.lote.fechaVencimiento) },
+                  { titulo: 'Ubicación', valor: (m) => m.ubicacion.nombre },
+                  { titulo: 'Cantidad', valor: (m) => m.cantidad },
+                  { titulo: 'Saldo', valor: (m) => m.saldo },
+                  { titulo: 'Costo unitario (Q)', valor: (m) => m.costoUnitario },
+                  { titulo: 'Detalle', valor: (m) => m.motivo },
+                  { titulo: 'Usuario', valor: (m) => m.usuario },
+                ],
+                await obtenerTodas<MovimientoKardex>('/inventario/kardex', {
+                  ...listado.filtros,
+                  productoId,
+                  ubicacionId,
+                }),
+              )
+            }
           />
         </div>
       </BarraFiltros>

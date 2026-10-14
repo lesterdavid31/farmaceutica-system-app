@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
 import { createBrowserRouter, Link, RouterProvider } from 'react-router';
 import { RutaAutenticada, SoloRoles } from '@/auth/RutaProtegida';
+import { tieneRol, useUsuario } from '@/auth/sesion';
 import { Cargando, Pagina } from '@/components/pagina';
 import { AppLayout } from '@/layout/AppLayout';
 import type { Rol } from '@/lib/dominio';
@@ -50,6 +51,12 @@ const ReportePlanilla = diferida(
 const Activos = diferida(() => import('@/pages/activos/Activos'), 'Activos');
 const DetalleActivo = diferida(() => import('@/pages/activos/Activos'), 'DetalleActivo');
 const ReporteActivos = diferida(() => import('@/pages/activos/ReporteActivos'), 'ReporteActivos');
+const Dashboard = diferida(() => import('@/pages/Dashboard'), 'Dashboard');
+const FlujoEfectivo = diferida(() => import('@/pages/auditoria/FlujoEfectivo'), 'FlujoEfectivo');
+const MovimientoMedicamentos = diferida(
+  () => import('@/pages/auditoria/MovimientoMedicamentos'),
+  'MovimientoMedicamentos',
+);
 const DetalleTraslado = diferida(
   () => import('@/pages/traslados/DetalleTraslado'),
   'DetalleTraslado',
@@ -74,6 +81,24 @@ const solo = (roles: Rol[], pantalla: ReactNode) => (
     </Suspense>
   </SoloRoles>
 );
+
+/** ADMIN, AUDITOR y GERENTE entran a su dashboard (RF-32, RF-37); los demás, a sus módulos. */
+function PaginaInicio() {
+  const usuario = useUsuario();
+  return tieneRol(usuario, SUPERVISION) ? (
+    <Suspense
+      fallback={
+        <Pagina>
+          <Cargando texto="Cargando el dashboard..." />
+        </Pagina>
+      }
+    >
+      <Dashboard />
+    </Suspense>
+  ) : (
+    <Inicio />
+  );
+}
 
 function NoEncontrada() {
   return (
@@ -103,7 +128,9 @@ const router = createBrowserRouter([
       </RutaAutenticada>
     ),
     children: [
-      { index: true, element: <Inicio /> },
+      { index: true, element: <PaginaInicio /> },
+      { path: 'auditoria/flujo-efectivo', element: solo(SUPERVISION, <FlujoEfectivo />) },
+      { path: 'auditoria/movimientos', element: solo(SUPERVISION, <MovimientoMedicamentos />) },
       { path: 'inventario/existencias', element: solo(TODOS, <Existencias />) },
       { path: 'inventario/alertas', element: solo(SUPERVISION, <Alertas />) },
       { path: 'inventario/kardex', element: solo(SUPERVISION, <Kardex />) },

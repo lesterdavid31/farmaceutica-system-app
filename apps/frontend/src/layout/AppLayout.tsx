@@ -72,7 +72,7 @@ function SelectorUbicacion() {
       <Select
         value={ubicacionId}
         onChange={(e) => setUbicacionId(e.target.value)}
-        className="h-9 w-48 text-denso sm:w-64"
+        className="h-9 w-40 text-denso sm:w-64"
         aria-label="Filtrar por ubicación"
       >
         <option value="">Todas las ubicaciones</option>
@@ -164,7 +164,8 @@ export function AppLayout() {
           >
             <Menu size={18} strokeWidth={1.75} />
           </button>
-          <div className="lg:hidden">
+          {/* En el celular el logo cede su espacio al selector de ubicación y al usuario. */}
+          <div className="hidden sm:block lg:hidden">
             <Logo />
           </div>
           <div className="ml-auto flex items-center gap-3">
