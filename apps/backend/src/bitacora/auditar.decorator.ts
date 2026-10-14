@@ -13,7 +13,11 @@ export type ModeloAuditable =
   | 'configuracion'
   | 'traslado'
   | 'cliente'
-  | 'pedido';
+  | 'pedido'
+  | 'empleado'
+  | 'planilla'
+  | 'activoFijo'
+  | 'categoriaActivo';
 
 export interface OpcionesAuditoria {
   /** Nombre legible de la entidad que se guarda en la bitácora, por ejemplo "Usuario". */

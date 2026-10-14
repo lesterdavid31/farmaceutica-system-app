@@ -15,6 +15,8 @@ import { VentasModule } from './ventas/ventas.module';
 import { MapasModule } from './mapas/mapas.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { PedidosModule } from './pedidos/pedidos.module';
+import { PlanillaModule } from './planilla/planilla.module';
+import { ActivosModule } from './activos/activos.module';
 import { AuditorSoloLecturaGuard, JwtAuthGuard, RolesGuard } from './common/guards';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { HealthModule } from './health/health.module';
@@ -46,6 +48,8 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     MapasModule,
     ClientesModule,
     PedidosModule,
+    PlanillaModule,
+    ActivosModule,
   ],
   providers: [
     // Orden de los guards globales: autenticación → rol → solo lectura del auditor.

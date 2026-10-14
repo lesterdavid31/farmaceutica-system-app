@@ -22,6 +22,7 @@ import { sembrarInventario } from './seed/inventario';
 import { sembrarTraslados } from './seed/traslados';
 import { sembrarVentas } from './seed/ventas';
 import { sembrarPedidos } from './seed/pedidos';
+import { sembrarPlanillaYActivos } from './seed/planilla-activos';
 
 config({ quiet: true });
 
@@ -153,6 +154,7 @@ async function main() {
   await sembrarTraslados(prisma);
   await sembrarVentas(prisma);
   await sembrarPedidos(prisma);
+  await sembrarPlanillaYActivos(prisma);
 
   const conteo = {
     departamentos: await prisma.departamento.count(),
