@@ -91,6 +91,27 @@ La migración inicial agrega, además de las tablas, el `CHECK` de existencias n
 
 Para desarrollo local se usa `npm run prisma:migrate -w @farmacia/backend`, que crea nuevas migraciones.
 
+### Recargar los datos de demostración desde cero
+
+El seed fecha la historia (unos 3 meses hasta ayer) a partir del día en que se ejecuta. Para presentar la demo con fechas al día, o para descartar las pruebas manuales, se vacía la base y se vuelve a cargar. **Borra todos los datos**, incluidos el kardex y la bitácora:
+
+```bash
+# con DIRECT_URL de la base que se va a vaciar en apps/backend/.env
+npm exec -w @farmacia/backend -- prisma migrate reset --force   # borra el esquema y aplica las migraciones
+npm run seed -w @farmacia/backend                        # alrededor de un minuto contra Neon
+```
+
+Las pruebas e2e (`npm run test:e2e -w @farmacia/backend`) corren contra esa misma base dentro de transacciones revertidas: no dejan datos, pero consumen números de las secuencias (ventas, pedidos y traslados).
+
+## Verificación después de desplegar
+
+1. `https://<proyecto>.vercel.app/api/v1/health` responde `"baseDatos": "ok"`.
+2. Entrar como `admin@farmacia.gt` (contraseña `Farmacia2026!`): el dashboard muestra las ventas de los últimos 30 días y las alertas del día.
+3. Entrar como `auditor@farmacia.gt`, abrir _Flujo de efectivo_ y exportar un CSV.
+4. Entrar como `cajero.xela@farmacia.gt`, abrir caja, hacer una venta y cerrar con arqueo.
+5. Entrar como `operador@farmacia.gt` y consultar la disponibilidad de un pedido.
+6. Revisar en el móvil (o con el modo responsivo del navegador) que el menú lateral se abra con el botón ☰.
+
 ## Limitaciones aceptadas
 
 - Vercel Services está en beta.

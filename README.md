@@ -88,6 +88,29 @@ Todos usan la contraseña **`Farmacia2026!`**.
 | `gerente.reu@farmacia.gt`       | Gerente                 | Stand Gasolinera Retalhuleu     |
 | `cajero.reu@farmacia.gt`        | Cajero                  | Stand Gasolinera Retalhuleu     |
 
+## Datos de demostración
+
+`npm run seed -w @farmacia/backend` carga una cadena con unos **3 meses de operación** (sección 9 de la especificación). Es idempotente: cada parte se omite si ya existe. Sobre una base vacía tarda alrededor de un minuto contra Neon.
+
+| Parte                              | Contenido                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Catálogo                           | 22 departamentos, 9 ubicaciones con coordenadas reales, 20 usuarios, 45 productos genéricos, 4 proveedores y los parámetros de configuración                                                                                                                                                                                                                                     |
+| Inventario inicial (hace ~4 meses) | 3 compras de la bodega con lotes que hoy están vencidos, por vencer y con vencimiento lejano; inventario de apertura de cada sucursal (a cada una le faltan algunos productos, y 3 solo existen en la bodega y en Xela) y stock mínimo                                                                                                                                           |
+| Historia (hace 92 días a ayer)     | Compras quincenales de la bodega, traslados quincenales a cada sucursal (algunos con faltantes y algunos cancelados), un turno de caja diario por sucursal con unas 10,000 ventas, gastos, retiros, depósitos, anulaciones y arqueos (uno de cada diez con diferencia), unos 340 pedidos del call center (algunos entregados tarde y otros cancelados) y bajas de lotes vencidos |
+| Hoy                                | Un traslado en cada estado, turnos abiertos y cerrados, y pedidos pendientes, atrasados, en preparación y esperando un traslado (detalle en cada sección)                                                                                                                                                                                                                        |
+| Planilla y activos                 | 34 empleados, planillas cerradas de agosto y septiembre de 2026 y 30 activos fijos                                                                                                                                                                                                                                                                                               |
+
+La historia se simula en memoria con las mismas reglas y funciones de la API (FEFO sin vencidos, arqueo, ciclo de traslados y de pedidos) y se guarda en bloque en una sola transacción; usar los servicios uno por uno para miles de ventas haría decenas de miles de viajes a la base. Las fechas son relativas al día en que se ejecuta el seed. Después de cargarla se verificó que el saldo del kardex nunca queda negativo, que cada existencia es igual a la suma de sus movimientos y que cada arqueo cuadra con los movimientos del turno.
+
+### Recorrido sugerido
+
+1. **`admin`**: dashboard ejecutivo con las alertas del día; filtrar por una ubicación con el selector.
+2. **`auditor`**: _Auditoría → Flujo de efectivo_ desde el 01/07 (sobrantes y faltantes por sucursal) y exportar a CSV; _Movimiento de medicamentos_ y _Bitácora_.
+3. **`cajero.xela`**: abrir caja, vender en el punto de venta (los lotes salen por FEFO) y cerrar con arqueo.
+4. **`operador`**: nuevo pedido para un cliente (teléfono `55210004`) con _Claritromicina 500 mg_: solo hay en la bodega y en Xela, así que el sistema propone un traslado.
+5. **`gerente.coban`**: dashboard de sucursal, el pedido atrasado en camino y la anulación de una venta del turno abierto.
+6. **`gerente.bodega`**: aprobar y despachar el traslado solicitado; registrar una compra.
+
 ## Seguridad y auditoría
 
 - Los permisos se aplican en el backend con guards globales: JWT → rol → solo lectura del auditor. GERENTE y CAJERO quedan limitados a su ubicación. El frontend solo oculta opciones.
@@ -104,7 +127,7 @@ Todos usan la contraseña **`Farmacia2026!`**.
 - Las salidas bloquean las filas de existencia (`SELECT ... FOR UPDATE`) y restan con una actualización condicional (`cantidad >= x`) dentro de una transacción, para que dos operaciones simultáneas no vendan el mismo stock.
 - Las correcciones se hacen con ajustes con motivo; los lotes vencidos se retiran con una baja por vencimiento. Ambos quedan en el kardex.
 - Solo la bodega central registra compras a proveedores; las sucursales se abastecen con traslados.
-- El seed carga 3 compras de la bodega (con lotes vencidos, por vencer y de vencimiento lejano), el inventario inicial de apertura de cada sucursal como ajuste con motivo y el stock mínimo de los productos de mayor rotación. Cada sucursal carece de algunos productos para demostrar la sugerencia de traslado del call center. La primera carga tarda unos 3 minutos.
+- El seed carga 3 compras iniciales de la bodega (con lotes vencidos, por vencer y de vencimiento lejano), el inventario de apertura de cada sucursal como ajuste con motivo y el stock mínimo de los productos de mayor rotación, y después 3 meses de compras, traslados, ventas y bajas (ver _Datos de demostración_). Cada sucursal carece de algunos productos para demostrar la sugerencia de traslado del call center.
 - Las pruebas e2e de inventario corren dentro de transacciones que se revierten, porque el kardex es inmutable: no dejan datos en la base.
 
 ## Traslados

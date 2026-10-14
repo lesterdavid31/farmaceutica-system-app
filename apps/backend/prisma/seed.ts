@@ -19,9 +19,10 @@ import {
   USUARIOS_GLOBALES,
 } from './seed/datos-base';
 import { sembrarInventario } from './seed/inventario';
+import { sembrarHistoria } from './seed/historia';
 import { sembrarTraslados } from './seed/traslados';
 import { sembrarVentas } from './seed/ventas';
-import { sembrarPedidos } from './seed/pedidos';
+import { sembrarPedidos, sembrarRepartidores } from './seed/pedidos';
 import { sembrarPlanillaYActivos } from './seed/planilla-activos';
 
 config({ quiet: true });
@@ -151,6 +152,10 @@ async function main() {
   await catalogo();
   await configuracion();
   await sembrarInventario(prisma);
+  await sembrarRepartidores(prisma);
+  // Unos 3 meses de operación hasta ayer; lo de hoy (traslados en cada estado, turnos y pedidos
+  // abiertos) se crea después con los servicios de la API.
+  await sembrarHistoria(prisma);
   await sembrarTraslados(prisma);
   await sembrarVentas(prisma);
   await sembrarPedidos(prisma);

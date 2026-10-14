@@ -11,6 +11,7 @@ import {
   EncabezadoPagina,
   EstadoVacio,
   Pagina,
+  Paginacion,
   Panel,
   PanelError,
 } from '@/components/pagina';
@@ -115,6 +116,8 @@ function Celdas({ f }: { f: Omit<FilaFlujo, 'ubicacion'> }) {
   );
 }
 
+const TURNOS_POR_PAGINA = 25;
+
 /** RF-33: flujo de efectivo consolidado y por sucursal, con diferencias de arqueo y turnos. */
 export function FlujoEfectivo() {
   const usuario = useUsuario();
@@ -130,6 +133,15 @@ export function FlujoEfectivo() {
     enabled: desde !== '' && hasta !== '' && desde <= hasta,
   });
   const r = consulta.data;
+  // Los turnos del período se paginan en pantalla (en tres meses son más de 700); la página
+  // vuelve a 1 cuando cambia la consulta.
+  const clave = `${desde}|${hasta}|${ubicacionId ?? ''}`;
+  const [paginaTurnos, setPaginaTurnos] = useState({ clave, numero: 1 });
+  const pagina = paginaTurnos.clave === clave ? paginaTurnos.numero : 1;
+  const turnosVisibles = r?.turnos.slice(
+    (pagina - 1) * TURNOS_POR_PAGINA,
+    pagina * TURNOS_POR_PAGINA,
+  );
 
   return (
     <Pagina>
@@ -304,7 +316,7 @@ export function FlujoEfectivo() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {r.turnos.map((t) => (
+                    {turnosVisibles!.map((t) => (
                       <TableRow key={t.id}>
                         <TableCell className="tabular-nums whitespace-nowrap">
                           <Link
@@ -329,6 +341,14 @@ export function FlujoEfectivo() {
                     ))}
                   </TableBody>
                 </Table>
+              )}
+              {r.turnos.length > TURNOS_POR_PAGINA && (
+                <Paginacion
+                  page={pagina}
+                  limit={TURNOS_POR_PAGINA}
+                  total={r.turnos.length}
+                  onPage={(numero) => setPaginaTurnos({ clave, numero })}
+                />
               )}
               <p className="m-0 border-t border-borde px-4 py-2 text-meta text-texto-secundario">
                 Período del {formatearFecha(r.desde)} al {formatearFecha(r.hasta)}. Las diferencias

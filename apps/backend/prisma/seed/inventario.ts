@@ -1,5 +1,6 @@
-// Seed de inventario: compras de la bodega con lotes vencidos, por vencer y lejanos, inventario
-// inicial de apertura en cada sucursal y stock mínimo. Valores reproducibles (semilla fija).
+// Seed de inventario: compras iniciales de la bodega con lotes que hoy están vencidos, por vencer y
+// lejanos, inventario inicial de apertura en cada sucursal (hace unos 100 días) y stock mínimo. La
+// operación posterior está en historia.ts. Valores reproducibles (semilla fija).
 // Idempotente: si la primera compra del seed ya existe, no hace nada.
 
 import { Prisma, PrismaClient } from '../../src/generated/prisma/client';
@@ -10,7 +11,7 @@ import { PROVEEDORES, UBICACIONES } from './datos-base';
 type Tx = Prisma.TransactionClient;
 
 /** Generador pseudoaleatorio determinista (mulberry32). */
-function generador(semilla: number) {
+export function generador(semilla: number) {
   let estado = semilla >>> 0;
   const siguiente = () => {
     estado = (estado + 0x6d2b79f5) >>> 0;
@@ -105,13 +106,15 @@ export async function sembrarInventario(prisma: PrismaClient) {
     const precio = Number(p.precioVenta);
     const costo = () => Math.round(precio * azar.decimal(0.55, 0.7) * 100) / 100;
     const prefijo = p.sku.replace('MED-', 'L');
-    if (i % 5 === 0) {
+    // Los productos con un lote ya vencido son los de baja rotación (ROTACION_BAJA en historia.ts):
+    // así parte del lote se queda sin vender, como en la realidad.
+    if (i % 5 === 4) {
       lotes.push({
         productoId: p.id,
         numeroLote: `${prefijo}-V${azar.entero(10, 99)}`,
         vence: enDias(-azar.entero(5, 40)),
         costo: costo(),
-        cantidadBodega: azar.entero(30, 80),
+        cantidadBodega: azar.entero(60, 140),
         tipo: 'vencido',
       });
     }
@@ -135,11 +138,11 @@ export async function sembrarInventario(prisma: PrismaClient) {
     });
   });
 
-  // Los lotes vencidos se compraron hace más tiempo; los lejanos, hace poco.
+  // Las tres compras iniciales son anteriores a la apertura de las sucursales.
   const compras = [
-    { documento: DOCUMENTO_PRIMERA_COMPRA, dias: -115, tipos: ['vencido'] },
-    { documento: 'SEED-FAC-0002', dias: -70, tipos: ['porVencer'] },
-    { documento: 'SEED-FAC-0003', dias: -25, tipos: ['lejano'] },
+    { documento: DOCUMENTO_PRIMERA_COMPRA, dias: -120, tipos: ['vencido'] },
+    { documento: 'SEED-FAC-0002', dias: -112, tipos: ['porVencer'] },
+    { documento: 'SEED-FAC-0003', dias: -105, tipos: ['lejano'] },
   ] as const;
 
   const loteIds = new Map<string, string>();
@@ -223,8 +226,8 @@ export async function sembrarInventario(prisma: PrismaClient) {
                 ? azar.entero(20, 60)
                 : plan.tipo === 'porVencer'
                   ? azar.entero(4, 15)
-                  : (j + k) % 3 === 0
-                    ? azar.entero(2, 8)
+                  : (j + k) % 3 !== 2
+                    ? azar.entero(8, 20)
                     : 0;
             if (cantidad === 0) {
               continue;

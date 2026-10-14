@@ -93,6 +93,33 @@ const CLIENTES = [
   },
 ];
 
+/** Dos repartidores por sucursal (RN-20: empleados sin acceso al sistema). Idempotente por DPI. */
+export async function sembrarRepartidores(prisma: PrismaClient) {
+  const ubicaciones = await prisma.ubicacion.findMany();
+  let n = 0;
+  for (const u of UBICACIONES.filter((x) => x.tipo !== TipoUbicacion.BODEGA_CENTRAL)) {
+    for (let i = 0; i < 2; i++) {
+      const [nombres, apellidos] = NOMBRES_REPARTIDOR[n % NOMBRES_REPARTIDOR.length];
+      const dpi = String(2_400_000_000_000 + n * 7_919);
+      await prisma.empleado.upsert({
+        where: { dpi },
+        update: {},
+        create: {
+          nombres,
+          apellidos,
+          dpi,
+          puesto: Puesto.REPARTIDOR,
+          salarioBase: 3_400,
+          ubicacionId: ubicaciones.find((x) => x.codigo === u.codigo)!.id,
+          fechaIngreso: new Date('2026-03-01T00:00:00Z'),
+        },
+      });
+      n++;
+    }
+  }
+  return n;
+}
+
 export async function sembrarPedidos(prisma: PrismaClient) {
   if (await prisma.cliente.findFirst({ where: { telefono: CLIENTES[0].telefono } })) {
     console.log('Call center: ya estaba cargado, se omite');
@@ -115,28 +142,7 @@ export async function sembrarPedidos(prisma: PrismaClient) {
   const ubicaciones = await prisma.ubicacion.findMany();
   const ubicacion = (codigo: string) => ubicaciones.find((u) => u.codigo === codigo)!;
 
-  // Dos repartidores por sucursal (RN-20: empleados sin acceso al sistema).
-  let n = 0;
-  for (const u of UBICACIONES.filter((x) => x.tipo !== TipoUbicacion.BODEGA_CENTRAL)) {
-    for (let i = 0; i < 2; i++) {
-      const [nombres, apellidos] = NOMBRES_REPARTIDOR[n % NOMBRES_REPARTIDOR.length];
-      const dpi = String(2_400_000_000_000 + n * 7_919);
-      await prisma.empleado.upsert({
-        where: { dpi },
-        update: {},
-        create: {
-          nombres,
-          apellidos,
-          dpi,
-          puesto: Puesto.REPARTIDOR,
-          salarioBase: 3_400,
-          ubicacionId: ubicacion(u.codigo).id,
-          fechaIngreso: new Date('2026-03-01T00:00:00Z'),
-        },
-      });
-      n++;
-    }
-  }
+  const n = await sembrarRepartidores(prisma);
 
   const clientes: { id: string; direcciones: { id: string }[] }[] = [];
   for (const c of CLIENTES) {
