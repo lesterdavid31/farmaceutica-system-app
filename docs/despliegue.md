@@ -98,7 +98,7 @@ El seed fecha la historia (unos 3 meses hasta ayer) a partir del día en que se 
 ```bash
 # con DIRECT_URL de la base que se va a vaciar en apps/backend/.env
 npm exec -w @farmacia/backend -- prisma migrate reset --force   # borra el esquema y aplica las migraciones
-npm run seed -w @farmacia/backend                        # alrededor de un minuto contra Neon
+npm run seed -w @farmacia/backend                        # unos 9 minutos contra Neon
 ```
 
 Las pruebas e2e (`npm run test:e2e -w @farmacia/backend`) corren contra esa misma base dentro de transacciones revertidas: no dejan datos, pero consumen números de las secuencias (ventas, pedidos y traslados).

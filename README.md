@@ -90,7 +90,7 @@ Todos usan la contraseña **`Farmacia2026!`**.
 
 ## Datos de demostración
 
-`npm run seed -w @farmacia/backend` carga una cadena con unos **3 meses de operación** (sección 9 de la especificación). Es idempotente: cada parte se omite si ya existe. Sobre una base vacía tarda alrededor de un minuto contra Neon.
+`npm run seed -w @farmacia/backend` carga una cadena con unos **3 meses de operación** (sección 9 de la especificación). Es idempotente: cada parte se omite si ya existe. Sobre una base vacía tarda unos 9 minutos contra Neon: la historia se guarda en poco más de un minuto, y el resto son las partes que usan los servicios de la API una operación a la vez.
 
 | Parte                              | Contenido                                                                                                                                                                                                                                                                                                                                                                        |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
