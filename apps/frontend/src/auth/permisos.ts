@@ -6,6 +6,11 @@ export function esGerenteBodega(usuario: Perfil) {
   return usuario.rol === 'GERENTE' && usuario.ubicacion?.tipo === 'BODEGA_CENTRAL';
 }
 
+/** Solo ADMIN y AUDITOR filtran por ubicación con el selector de la barra superior (sección 8). */
+export function usaSelectorUbicacion(usuario: Perfil) {
+  return usuario.rol === 'ADMIN' || usuario.rol === 'AUDITOR';
+}
+
 /** Solo la bodega central (y el administrador) registra compras. */
 export function usePuedeComprar() {
   const usuario = useUsuario();

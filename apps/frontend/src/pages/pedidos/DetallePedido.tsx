@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { api, query } from '@/lib/api';
-import { useMutacion } from '@/lib/consultas';
+import { REFRESCO_PEDIDOS_MS, useMutacion } from '@/lib/consultas';
 import {
   ESTADOS_PEDIDO,
   ESTADOS_TRASLADO,
@@ -259,6 +259,8 @@ export function DetallePedido() {
   const consulta = useQuery({
     queryKey: ['pedidos', 'detalle', id],
     queryFn: () => api.get<PedidoDetalle>(`/pedidos/${id}`),
+    refetchInterval: REFRESCO_PEDIDOS_MS,
+    refetchOnWindowFocus: true,
   });
   const pedido = consulta.data;
   const cerrar = () => setDialogo(null);

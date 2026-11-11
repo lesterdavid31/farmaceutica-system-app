@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { esGlobal, useUsuario } from './sesion';
+import { usaSelectorUbicacion } from './permisos';
+import { useUsuario } from './sesion';
 
-const CLAVE = 'farmacia.filtroUbicacion';
+/** Por usuario: si otro usuario entra en el mismo navegador, no hereda la ubicación elegida. */
+const clave = (usuarioId: string) => `farmacia.filtroUbicacion.${usuarioId}`;
 
 interface ContextoFiltro {
   /** Ubicación seleccionada para filtrar; `''` significa todas. */
@@ -11,9 +13,9 @@ interface ContextoFiltro {
 
 const Contexto = createContext<ContextoFiltro | null>(null);
 
-function leer() {
+function leer(usuarioId: string) {
   try {
-    return localStorage.getItem(CLAVE) ?? '';
+    return localStorage.getItem(clave(usuarioId)) ?? '';
   } catch {
     return '';
   }
@@ -22,21 +24,26 @@ function leer() {
 /**
  * Filtro de ubicación de la barra superior (solo ADMIN y AUDITOR, sección 8).
  * Para GERENTE y CAJERO siempre es su propia ubicación; el backend lo hace cumplir igual.
+ * El OPERADOR_CALL_CENTER no tiene selector: siempre ve todas las ubicaciones.
  */
 export function ProveedorFiltroUbicacion({ children }: { children: ReactNode }) {
   const usuario = useUsuario();
-  const [seleccion, setSeleccion] = useState(leer);
+  const [seleccion, setSeleccion] = useState(() => leer(usuario.id));
 
-  const setUbicacionId = useCallback((id: string) => {
-    setSeleccion(id);
-    try {
-      localStorage.setItem(CLAVE, id);
-    } catch {
-      // Preferencia solo de esta sesión.
-    }
-  }, []);
+  const setUbicacionId = useCallback(
+    (id: string) => {
+      setSeleccion(id);
+      try {
+        localStorage.setItem(clave(usuario.id), id);
+      } catch {
+        // Preferencia solo de esta sesión.
+      }
+    },
+    [usuario.id],
+  );
 
-  const ubicacionId = esGlobal(usuario) ? seleccion : (usuario.ubicacion?.id ?? '');
+  // El operador no tiene ubicación asignada, así que queda en '' (todas).
+  const ubicacionId = usaSelectorUbicacion(usuario) ? seleccion : (usuario.ubicacion?.id ?? '');
   const valor = useMemo(() => ({ ubicacionId, setUbicacionId }), [ubicacionId, setUbicacionId]);
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

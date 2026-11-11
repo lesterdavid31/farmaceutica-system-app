@@ -3,7 +3,8 @@ import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { useFiltroUbicacion } from '@/auth/filtro-ubicacion';
-import { esGlobal, useSesion, useUsuario } from '@/auth/sesion';
+import { usaSelectorUbicacion } from '@/auth/permisos';
+import { useSesion, useUsuario } from '@/auth/sesion';
 import { Logo } from '@/components/Logo';
 import { Select } from '@/components/ui/input';
 import {
@@ -169,7 +170,7 @@ export function AppLayout() {
             <Logo />
           </div>
           <div className="ml-auto flex items-center gap-3">
-            {esGlobal(usuario) && usuario.rol !== 'OPERADOR_CALL_CENTER' && <SelectorUbicacion />}
+            {usaSelectorUbicacion(usuario) && <SelectorUbicacion />}
             <MenuUsuario />
           </div>
         </header>

@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useListado } from '@/lib/consultas';
+import { REFRESCO_PEDIDOS_MS, useListado } from '@/lib/consultas';
 import { ESTADOS_PEDIDO, type EstadoPedido, type PedidoResumen } from '@/lib/dominio';
 import { formatearFechaHora, formatearMoneda } from '@/lib/formato';
 import { cn } from '@/lib/utils';
@@ -62,7 +62,8 @@ export function Pedidos() {
     'pedidos',
     // La bandeja de la sucursal muestra por defecto lo que falta atender.
     { q: '', estado: '', activos: sucursal, atrasados: false },
-    { extra: global ? { ubicacionId } : {} },
+    // Otros roles cambian el estado de los pedidos: la bandeja se actualiza sola.
+    { extra: global ? { ubicacionId } : {}, refrescarCada: REFRESCO_PEDIDOS_MS },
   );
   const mostrarSucursal = global && !ubicacionId;
 

@@ -27,6 +27,9 @@ export function useDebounce<T>(valor: T, ms = 300) {
  * la barra superior). La clave de caché separa el recurso por "/", así que invalidar
  * `['inventario']` refresca también `inventario/existencias`.
  */
+/** Cada cuánto se vuelven a consultar la bandeja y el detalle de pedidos. */
+export const REFRESCO_PEDIDOS_MS = 15_000;
+
 export function useListado<
   T,
   F extends Record<string, ValorFiltro>,
@@ -34,7 +37,16 @@ export function useListado<
 >(
   recurso: string,
   filtrosIniciales: F,
-  { limit = 20, extra = {} }: { limit?: number; extra?: Record<string, ValorFiltro> } = {},
+  {
+    limit = 20,
+    extra = {},
+    refrescarCada,
+  }: {
+    limit?: number;
+    extra?: Record<string, ValorFiltro>;
+    /** Milisegundos: vuelve a consultar solo, y también al regresar a la pestaña. */
+    refrescarCada?: number;
+  } = {},
 ) {
   const [filtros, setFiltrosEstado] = useState<F>(filtrosIniciales);
   const [page, setPage] = useState(1);
@@ -52,6 +64,7 @@ export function useListado<
     queryKey: [...recurso.split('/'), 'listado', parametros],
     queryFn: () => api.get<R>(`/${recurso}${query(parametros)}`),
     placeholderData: keepPreviousData,
+    ...(refrescarCada && { refetchInterval: refrescarCada, refetchOnWindowFocus: true }),
   });
 
   /** Cambiar un filtro vuelve a la primera página. */
