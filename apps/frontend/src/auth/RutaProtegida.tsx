@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 import { Pagina } from '@/components/pagina';
-import type { Rol } from '@/lib/dominio';
+import type { Perfil, Rol } from '@/lib/dominio';
 import { ProveedorFiltroUbicacion } from './filtro-ubicacion';
 import { useSesion } from './sesion';
 
@@ -23,10 +23,22 @@ export function RutaAutenticada({ children }: { children: ReactNode }) {
   return <ProveedorFiltroUbicacion>{children}</ProveedorFiltroUbicacion>;
 }
 
-/** Restringe una pantalla a ciertos roles. */
-export function SoloRoles({ roles, children }: { roles: readonly Rol[]; children: ReactNode }) {
+/** Restringe una pantalla a ciertos roles y, opcionalmente, a una condición adicional. */
+export function SoloRoles({
+  roles,
+  visible,
+  children,
+}: {
+  roles: readonly Rol[];
+  visible?: (usuario: Perfil) => boolean;
+  children: ReactNode;
+}) {
   const { sesion } = useSesion();
-  if (sesion.estado !== 'autenticado' || !roles.includes(sesion.usuario.rol)) {
+  if (
+    sesion.estado !== 'autenticado' ||
+    !roles.includes(sesion.usuario.rol) ||
+    (visible && !visible(sesion.usuario))
+  ) {
     return (
       <Pagina>
         <h1 className="m-0 text-pagina font-semibold">Sin acceso</h1>

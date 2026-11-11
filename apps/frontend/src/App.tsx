@@ -1,10 +1,11 @@
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
 import { createBrowserRouter, Link, RouterProvider } from 'react-router';
+import { esGerenteBodega } from '@/auth/permisos';
 import { RutaAutenticada, SoloRoles } from '@/auth/RutaProtegida';
 import { tieneRol, useUsuario } from '@/auth/sesion';
 import { Cargando, Pagina } from '@/components/pagina';
 import { AppLayout } from '@/layout/AppLayout';
-import type { Rol } from '@/lib/dominio';
+import type { Perfil, Rol } from '@/lib/dominio';
 import { Inicio } from '@/pages/Inicio';
 import { Login } from '@/pages/Login';
 
@@ -68,8 +69,11 @@ const SUPERVISION: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
 const VENTAS: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
 const CALL_CENTER: Rol[] = ['ADMIN', 'AUDITOR', 'OPERADOR_CALL_CENTER'];
 
-const solo = (roles: Rol[], pantalla: ReactNode) => (
-  <SoloRoles roles={roles}>
+/** La bodega central no vende, no tiene caja ni despacha pedidos. */
+const sinBodega = (u: Perfil) => !esGerenteBodega(u);
+
+const solo = (roles: Rol[], pantalla: ReactNode, visible?: (u: Perfil) => boolean) => (
+  <SoloRoles roles={roles} visible={visible}>
     <Suspense
       fallback={
         <Pagina>
@@ -119,7 +123,7 @@ const router = createBrowserRouter([
   {
     // El comprobante se imprime sin el menú ni la barra superior.
     path: '/ventas/:id/comprobante',
-    element: <RutaAutenticada>{solo(VENTAS, <Comprobante />)}</RutaAutenticada>,
+    element: <RutaAutenticada>{solo(VENTAS, <Comprobante />, sinBodega)}</RutaAutenticada>,
   },
   {
     element: (
@@ -129,7 +133,10 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <PaginaInicio /> },
-      { path: 'auditoria/flujo-efectivo', element: solo(SUPERVISION, <FlujoEfectivo />) },
+      {
+        path: 'auditoria/flujo-efectivo',
+        element: solo(SUPERVISION, <FlujoEfectivo />, sinBodega),
+      },
       { path: 'auditoria/movimientos', element: solo(SUPERVISION, <MovimientoMedicamentos />) },
       { path: 'inventario/existencias', element: solo(TODOS, <Existencias />) },
       { path: 'inventario/alertas', element: solo(SUPERVISION, <Alertas />) },
@@ -142,18 +149,18 @@ const router = createBrowserRouter([
       { path: 'traslados/:id', element: solo(SUPERVISION, <DetalleTraslado />) },
       { path: 'punto-de-venta', element: solo(['CAJERO'], <PuntoVenta />) },
       { path: 'caja', element: solo(['CAJERO'], <Caja />) },
-      { path: 'caja/turnos', element: solo(VENTAS, <Turnos />) },
-      { path: 'caja/turnos/:id', element: solo(VENTAS, <DetalleTurno />) },
-      { path: 'ventas', element: solo(VENTAS, <Ventas />) },
-      { path: 'ventas/:id', element: solo(VENTAS, <DetalleVenta />) },
+      { path: 'caja/turnos', element: solo(VENTAS, <Turnos />, sinBodega) },
+      { path: 'caja/turnos/:id', element: solo(VENTAS, <DetalleTurno />, sinBodega) },
+      { path: 'ventas', element: solo(VENTAS, <Ventas />, sinBodega) },
+      { path: 'ventas/:id', element: solo(VENTAS, <DetalleVenta />, sinBodega) },
       {
         path: 'call-center/nuevo-pedido',
         element: solo(['ADMIN', 'OPERADOR_CALL_CENTER'], <NuevoPedido />),
       },
       { path: 'call-center/clientes', element: solo(CALL_CENTER, <Clientes />) },
       { path: 'call-center/clientes/:id', element: solo(CALL_CENTER, <DetalleCliente />) },
-      { path: 'pedidos', element: solo(TODOS, <Pedidos />) },
-      { path: 'pedidos/:id', element: solo(TODOS, <DetallePedido />) },
+      { path: 'pedidos', element: solo(TODOS, <Pedidos />, sinBodega) },
+      { path: 'pedidos/:id', element: solo(TODOS, <DetallePedido />, sinBodega) },
       { path: 'planilla/empleados', element: solo(SUPERVISION, <Empleados />) },
       { path: 'planilla/planillas', element: solo(SUPERVISION, <Planillas />) },
       { path: 'planilla/planillas/:id', element: solo(SUPERVISION, <DetallePlanilla />) },

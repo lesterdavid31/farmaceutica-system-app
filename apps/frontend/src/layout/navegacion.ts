@@ -53,6 +53,9 @@ const ADMINISTRACION: readonly Rol[] = ['ADMIN', 'AUDITOR'];
 const SUPERVISION: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
 const VENTAS: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
 
+/** La bodega central no vende, no tiene caja ni despacha pedidos: su gerente no ve esas pantallas. */
+const sinBodega = (u: Perfil) => !esGerenteBodega(u);
+
 /** Menú lateral. Cada fase agrega sus módulos aquí; solo se muestran los que el usuario puede usar. */
 export const NAVEGACION: SeccionNavegacion[] = [
   { items: [{ ruta: '/', etiqueta: 'Inicio', icono: House, roles: TODOS }] },
@@ -65,7 +68,13 @@ export const NAVEGACION: SeccionNavegacion[] = [
         icono: Headset,
         roles: ['ADMIN', 'OPERADOR_CALL_CENTER'],
       },
-      { ruta: '/pedidos', etiqueta: 'Pedidos', icono: PackageSearch, roles: TODOS },
+      {
+        ruta: '/pedidos',
+        etiqueta: 'Pedidos',
+        icono: PackageSearch,
+        roles: TODOS,
+        visible: sinBodega,
+      },
       {
         ruta: '/call-center/clientes',
         etiqueta: 'Clientes',
@@ -84,8 +93,14 @@ export const NAVEGACION: SeccionNavegacion[] = [
         roles: ['CAJERO'],
       },
       { ruta: '/caja', etiqueta: 'Caja', icono: Banknote, roles: ['CAJERO'], fin: true },
-      { ruta: '/ventas', etiqueta: 'Ventas', icono: Receipt, roles: VENTAS },
-      { ruta: '/caja/turnos', etiqueta: 'Turnos de caja', icono: ClipboardList, roles: VENTAS },
+      { ruta: '/ventas', etiqueta: 'Ventas', icono: Receipt, roles: VENTAS, visible: sinBodega },
+      {
+        ruta: '/caja/turnos',
+        etiqueta: 'Turnos de caja',
+        icono: ClipboardList,
+        roles: VENTAS,
+        visible: sinBodega,
+      },
     ],
   },
   {
@@ -142,6 +157,7 @@ export const NAVEGACION: SeccionNavegacion[] = [
         etiqueta: 'Flujo de efectivo',
         icono: Wallet,
         roles: SUPERVISION,
+        visible: sinBodega,
       },
       {
         ruta: '/auditoria/movimientos',
