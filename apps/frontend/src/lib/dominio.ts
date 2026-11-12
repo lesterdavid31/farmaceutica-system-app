@@ -1,10 +1,12 @@
 // Tipos y etiquetas del dominio. La interfaz muestra siempre texto legible, nunca el valor del enum.
 
-export type Rol = 'ADMIN' | 'GERENTE' | 'CAJERO' | 'OPERADOR_CALL_CENTER' | 'AUDITOR';
+export type Rol =
+  'ADMIN' | 'GERENTE_GENERAL' | 'GERENTE' | 'CAJERO' | 'OPERADOR_CALL_CENTER' | 'AUDITOR';
 export type TipoUbicacion = 'BODEGA_CENTRAL' | 'FARMACIA_CC' | 'STAND_GASOLINERA';
 
 export const ROLES: Record<Rol, string> = {
-  ADMIN: 'Administrador',
+  ADMIN: 'Administrador de TI',
+  GERENTE_GENERAL: 'Gerente general',
   GERENTE: 'Gerente',
   CAJERO: 'Cajero',
   OPERADOR_CALL_CENTER: 'Operador de call center',
@@ -18,7 +20,12 @@ export const TIPOS_UBICACION: Record<TipoUbicacion, string> = {
 };
 
 /** Roles que ven todas las ubicaciones; GERENTE y CAJERO solo la suya. */
-export const ROLES_GLOBALES: Rol[] = ['ADMIN', 'AUDITOR', 'OPERADOR_CALL_CENTER'];
+export const ROLES_GLOBALES: Rol[] = [
+  'ADMIN',
+  'GERENTE_GENERAL',
+  'AUDITOR',
+  'OPERADOR_CALL_CENTER',
+];
 
 export const ACCIONES_BITACORA: Record<string, string> = {
   CREAR: 'Crear',
@@ -45,6 +52,8 @@ export const ACCIONES_BITACORA: Record<string, string> = {
   CERRAR: 'Cerrar',
   DAR_DE_BAJA: 'Dar de baja',
   TRASLADAR: 'Trasladar',
+  RECHAZAR: 'Rechazar',
+  CREAR_CUENTA: 'Crear cuenta',
 };
 
 export function etiquetaAccion(accion: string) {
@@ -95,6 +104,49 @@ export interface Usuario {
   ubicacionId: string | null;
   ubicacion: UbicacionResumen | null;
   createdAt: string;
+}
+
+export type EstadoSolicitudUsuario = 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'ATENDIDA';
+export type AccionSolicitud = 'aprobar' | 'rechazar' | 'crearCuenta';
+
+export const ESTADOS_SOLICITUD: Record<EstadoSolicitudUsuario, string> = {
+  PENDIENTE: 'Pendiente de aprobar',
+  APROBADA: 'Aprobada: espera a TI',
+  RECHAZADA: 'Rechazada',
+  ATENDIDA: 'Cuenta creada',
+};
+
+interface PersonaResumen {
+  id: string;
+  nombre: string;
+  email: string;
+}
+
+export interface SolicitudUsuario {
+  id: string;
+  numero: number;
+  nombre: string;
+  email: string;
+  rol: Rol;
+  ubicacion: UbicacionResumen;
+  justificacion: string | null;
+  estado: EstadoSolicitudUsuario;
+  solicitadoPor: PersonaResumen;
+  revisadoPor: PersonaResumen | null;
+  fechaRevision: string | null;
+  motivoRechazo: string | null;
+  atendidoPor: PersonaResumen | null;
+  fechaAtencion: string | null;
+  usuario: PersonaResumen | null;
+  createdAt: string;
+  acciones: AccionSolicitud[];
+}
+
+export interface UsuarioDisponible {
+  id: string;
+  nombre: string;
+  email: string;
+  rol: Rol;
 }
 
 export interface Categoria {

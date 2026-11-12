@@ -9,7 +9,7 @@ import { ComprasService } from './compras.service';
 
 @ApiTags('Compras')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.GERENTE)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.GERENTE)
 @Controller('compras')
 export class ComprasController {
   constructor(private readonly compras: ComprasService) {}
@@ -27,7 +27,7 @@ export class ComprasController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN, Rol.GERENTE)
+  @Roles(Rol.GERENTE_GENERAL, Rol.GERENTE)
   @Auditar({ entidad: 'Compra' })
   @ApiOperation({ summary: 'Registrar una compra en la bodega central (RF-04)' })
   crear(@Body() dto: CrearCompraDto, @UsuarioActual() usuario: UsuarioAutenticado) {

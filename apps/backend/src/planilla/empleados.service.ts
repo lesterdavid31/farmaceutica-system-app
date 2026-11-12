@@ -12,7 +12,12 @@ import { pagina, saltar } from '../common/paginacion';
 import { UsuarioAutenticado } from '../common/usuario-autenticado';
 import { hoyGuatemala } from '../inventario/fefo';
 import { PrismaService } from '../prisma/prisma.service';
-import { ActualizarEmpleadoDto, CrearEmpleadoDto, FiltroEmpleadosDto } from './planilla.dto';
+import {
+  ActualizarEmpleadoDto,
+  CrearEmpleadoDto,
+  FiltroEmpleadosDto,
+  FiltroUsuariosDisponiblesDto,
+} from './planilla.dto';
 
 const fechaDe = (texto: string) => new Date(`${texto.slice(0, 10)}T00:00:00.000Z`);
 
@@ -21,7 +26,7 @@ const incluir = {
   usuario: { select: { id: true, nombre: true, email: true, rol: true } },
 } as const;
 
-/** Empleados (RF-26). El gerente gestiona los de su sucursal; el administrador, todos. */
+/** Empleados (RF-26). El gerente gestiona los de su sucursal; el gerente general, todos. */
 @Injectable()
 export class EmpleadosService {
   constructor(private readonly prisma: PrismaService) {}
@@ -62,9 +67,36 @@ export class EmpleadosService {
     return empleado;
   }
 
+  /**
+   * Usuarios que se pueden vincular a un empleado: activos, de la ubicación del empleado y sin otro
+   * empleado. El gerente general también puede vincular usuarios de alcance global.
+   */
+  async usuariosDisponibles(filtro: FiltroUsuariosDisponiblesDto, usuario: UsuarioAutenticado) {
+    verificarAccesoUbicacion(usuario, filtro.ubicacionId);
+    return this.prisma.usuario.findMany({
+      where: {
+        activo: true,
+        OR: [
+          { ubicacionId: filtro.ubicacionId },
+          ...(usuario.rol === Rol.GERENTE_GENERAL ? [{ ubicacionId: null }] : []),
+        ],
+        AND: [
+          {
+            OR: [
+              { empleado: null },
+              ...(filtro.empleadoId ? [{ empleado: { id: filtro.empleadoId } }] : []),
+            ],
+          },
+        ],
+      },
+      select: { id: true, nombre: true, email: true, rol: true },
+      orderBy: [{ rol: 'asc' }, { nombre: 'asc' }],
+    });
+  }
+
   async crear(dto: CrearEmpleadoDto, usuario: UsuarioAutenticado) {
     verificarAccesoUbicacion(usuario, dto.ubicacionId);
-    await this.validar(dto);
+    await this.validar(dto, usuario);
     const empleado = await this.guardar(() =>
       this.prisma.empleado.create({
         data: { ...dto, fechaIngreso: fechaDe(dto.fechaIngreso), usuarioId: dto.usuarioId ?? null },
@@ -75,10 +107,14 @@ export class EmpleadosService {
 
   async actualizar(id: string, dto: ActualizarEmpleadoDto, usuario: UsuarioAutenticado) {
     const actual = await this.obtener(id, usuario);
-    if (dto.ubicacionId && dto.ubicacionId !== actual.ubicacionId && usuario.rol !== Rol.ADMIN) {
-      throw new ForbiddenException('Solo el administrador traslada empleados a otra ubicación');
+    if (
+      dto.ubicacionId &&
+      dto.ubicacionId !== actual.ubicacionId &&
+      usuario.rol !== Rol.GERENTE_GENERAL
+    ) {
+      throw new ForbiddenException('Solo el gerente general traslada empleados a otra ubicación');
     }
-    await this.validar({ ...dto, ubicacionId: dto.ubicacionId ?? actual.ubicacionId }, id);
+    await this.validar({ ...dto, ubicacionId: dto.ubicacionId ?? actual.ubicacionId }, usuario, id);
     await this.guardar(() =>
       this.prisma.empleado.update({
         where: { id },
@@ -97,7 +133,11 @@ export class EmpleadosService {
     return this.obtener(id, usuario);
   }
 
-  private async validar(dto: Partial<CrearEmpleadoDto>, excepto?: string) {
+  private async validar(
+    dto: Partial<CrearEmpleadoDto>,
+    actor: UsuarioAutenticado,
+    excepto?: string,
+  ) {
     if (dto.ubicacionId) {
       const ubicacion = await this.prisma.ubicacion.findUnique({ where: { id: dto.ubicacionId } });
       if (!ubicacion?.activa) {
@@ -114,6 +154,14 @@ export class EmpleadosService {
       });
       if (!u) {
         throw new ReglaNegocioException('El usuario no existe');
+      }
+      if (!u.activo) {
+        throw new ReglaNegocioException('El usuario está desactivado');
+      }
+      if (!u.ubicacionId && actor.rol !== Rol.GERENTE_GENERAL) {
+        throw new ReglaNegocioException(
+          'Solo el gerente general vincula usuarios que no pertenecen a una ubicación',
+        );
       }
       if (u.empleado && u.empleado.id !== excepto) {
         throw new ReglaNegocioException('El usuario ya está vinculado a otro empleado');

@@ -78,6 +78,21 @@ export class CrearEmpleadoDto {
   usuarioId?: string | null;
 }
 
+export class FiltroUsuariosDisponiblesDto {
+  @ApiProperty({ type: String, format: 'uuid', description: 'Ubicación del empleado' })
+  @IsUUID('all', { message: 'Seleccione la ubicación' })
+  ubicacionId!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    description: 'Empleado que se edita: su usuario actual también aparece en la lista',
+  })
+  @IsOptional()
+  @IsUUID()
+  empleadoId?: string;
+}
+
 export class ActualizarEmpleadoDto extends PartialType(CrearEmpleadoDto) {
   @ApiPropertyOptional({ type: Boolean })
   @IsOptional()

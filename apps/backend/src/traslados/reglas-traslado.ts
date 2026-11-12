@@ -45,13 +45,13 @@ const REQUISITO: Record<AccionTraslado, string> = {
 
 const QUIEN: Record<AccionTraslado, string> = {
   aprobar:
-    'Solo el gerente de la ubicación de origen o un administrador puede aprobar este traslado',
+    'Solo el gerente de la ubicación de origen o el gerente general puede aprobar este traslado',
   despachar:
-    'Solo el gerente de la ubicación de origen o un administrador puede despachar este traslado',
+    'Solo el gerente de la ubicación de origen o el gerente general puede despachar este traslado',
   recibir:
-    'Solo el gerente de la ubicación de destino o un administrador puede recibir este traslado',
+    'Solo el gerente de la ubicación de destino o el gerente general puede recibir este traslado',
   cancelar:
-    'Solo los gerentes de origen o destino o un administrador pueden cancelar este traslado',
+    'Solo los gerentes de origen o destino o el gerente general pueden cancelar este traslado',
 };
 
 interface TrasladoBase {
@@ -64,7 +64,7 @@ interface TrasladoBase {
 type Actor = Pick<UsuarioAutenticado, 'rol' | 'ubicacionId'>;
 
 /**
- * Quién puede hacer cada acción (RF-12 y sección 4): ADMIN todas; el gerente de origen aprueba y
+ * Quién puede hacer cada acción (RF-12 y sección 4): GERENTE_GENERAL todas; el gerente de origen aprueba y
  * despacha; el de destino recibe; cualquiera de los dos cancela.
  */
 export function puedeOperar(
@@ -72,7 +72,7 @@ export function puedeOperar(
   usuario: Actor,
   traslado: Pick<TrasladoBase, 'origenId' | 'destinoId'>,
 ) {
-  if (usuario.rol === Rol.ADMIN) {
+  if (usuario.rol === Rol.GERENTE_GENERAL) {
     return true;
   }
   if (usuario.rol !== Rol.GERENTE || !usuario.ubicacionId) {

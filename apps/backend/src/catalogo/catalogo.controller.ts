@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Auditar } from '../bitacora/auditar.decorator';
 import { Roles } from '../common/decoradores';
+import { ROLES_NEGOCIO } from '../common/usuario-autenticado';
 import { Rol } from '../generated/prisma/enums';
 import {
   ActualizarCategoriaDto,
@@ -28,6 +29,7 @@ import { CatalogoService } from './catalogo.service';
 
 @ApiTags('Catálogo: categorías')
 @ApiBearerAuth()
+@Roles(...ROLES_NEGOCIO)
 @Controller('categorias')
 export class CategoriasController {
   constructor(private readonly catalogo: CatalogoService) {}
@@ -44,21 +46,21 @@ export class CategoriasController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Categoria' })
   crear(@Body() dto: CrearCategoriaDto) {
     return this.catalogo.crearCategoria(dto);
   }
 
   @Patch(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Categoria', modelo: 'categoria' })
   actualizar(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ActualizarCategoriaDto) {
     return this.catalogo.actualizarCategoria(id, dto);
   }
 
   @Delete(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Categoria', modelo: 'categoria', accion: 'DESACTIVAR' })
   @ApiOperation({ summary: 'Desactivar una categoría' })
   desactivar(@Param('id', ParseUUIDPipe) id: string) {
@@ -68,7 +70,7 @@ export class CategoriasController {
 
 @ApiTags('Catálogo: proveedores')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.GERENTE, Rol.AUDITOR)
+@Roles(Rol.GERENTE_GENERAL, Rol.GERENTE, Rol.AUDITOR)
 @Controller('proveedores')
 export class ProveedoresController {
   constructor(private readonly catalogo: CatalogoService) {}
@@ -85,21 +87,21 @@ export class ProveedoresController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Proveedor' })
   crear(@Body() dto: CrearProveedorDto) {
     return this.catalogo.crearProveedor(dto);
   }
 
   @Patch(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Proveedor', modelo: 'proveedor' })
   actualizar(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ActualizarProveedorDto) {
     return this.catalogo.actualizarProveedor(id, dto);
   }
 
   @Delete(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Proveedor', modelo: 'proveedor', accion: 'DESACTIVAR' })
   @ApiOperation({ summary: 'Desactivar un proveedor' })
   desactivar(@Param('id', ParseUUIDPipe) id: string) {
@@ -109,6 +111,7 @@ export class ProveedoresController {
 
 @ApiTags('Catálogo: productos')
 @ApiBearerAuth()
+@Roles(...ROLES_NEGOCIO)
 @Controller('productos')
 export class ProductosController {
   constructor(private readonly catalogo: CatalogoService) {}
@@ -125,21 +128,21 @@ export class ProductosController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Producto' })
   crear(@Body() dto: CrearProductoDto) {
     return this.catalogo.crearProducto(dto);
   }
 
   @Patch(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Producto', modelo: 'producto' })
   actualizar(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ActualizarProductoDto) {
     return this.catalogo.actualizarProducto(id, dto);
   }
 
   @Delete(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'Producto', modelo: 'producto', accion: 'DESACTIVAR' })
   @ApiOperation({ summary: 'Desactivar un producto' })
   desactivar(@Param('id', ParseUUIDPipe) id: string) {

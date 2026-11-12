@@ -187,7 +187,12 @@ export const UBICACIONES: UbicacionSeed[] = [
 
 /** Usuarios de alcance global, sin ubicación. */
 export const USUARIOS_GLOBALES: { email: string; nombre: string; rol: Rol }[] = [
-  { email: 'admin@farmacia.gt', nombre: 'Administración General', rol: Rol.ADMIN },
+  { email: 'admin@farmacia.gt', nombre: 'Soporte de TI', rol: Rol.ADMIN },
+  {
+    email: 'gerente.general@farmacia.gt',
+    nombre: 'Claudia Rodas (Gerencia general)',
+    rol: Rol.GERENTE_GENERAL,
+  },
   { email: 'auditor@farmacia.gt', nombre: 'Patricia Hernández (Auditoría)', rol: Rol.AUDITOR },
   {
     email: 'operador@farmacia.gt',

@@ -111,7 +111,7 @@ describe('Call center (e2e)', () => {
         cantidad,
         tipo: TipoMovimientoInventario.AJUSTE,
         motivo: 'Prueba',
-        usuarioId: usuarios.admin.id,
+        usuarioId: usuarios['gerente.general'].id,
       });
     await ingresar(ubic.xela, p1Lejano.id, 5);
     await ingresar(ubic.xela, p1Pronto.id, 5);
@@ -223,7 +223,7 @@ describe('Call center (e2e)', () => {
     }
     categoriaId = (await prisma.categoria.findFirstOrThrow()).id;
     const cuentas = [
-      'admin',
+      'gerente.general',
       'auditor',
       'operador',
       'gerente.xela',

@@ -59,7 +59,7 @@ function SinPendientes({ texto }: { texto: string }) {
 export function Alertas() {
   const usuario = useUsuario();
   const { ubicacionId } = useFiltroUbicacion();
-  const puedeGestionar = tieneRol(usuario, ['ADMIN', 'GERENTE']);
+  const puedeGestionar = tieneRol(usuario, ['GERENTE_GENERAL', 'GERENTE']);
   const navegar = useNavigate();
   // La bodega no recibe traslados (compra a proveedores): sus faltantes no ofrecen traslado.
   const ubicaciones = useCatalogo<PaginaApi<Ubicacion>>(

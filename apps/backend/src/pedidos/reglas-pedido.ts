@@ -65,14 +65,14 @@ type Actor = Pick<UsuarioAutenticado, 'rol' | 'ubicacionId'>;
 
 /**
  * Quién opera (RN-20 y sección 4): el gerente y el cajero de la sucursal de despacho mueven el
- * pedido; cancelan el operador, el gerente de la sucursal y el administrador.
+ * pedido; cancelan el operador, el gerente de la sucursal y el gerente general.
  */
 export function puedeOperar(
   accion: AccionPedido,
   usuario: Actor,
   pedido: { ubicacionDespachoId: string },
 ) {
-  if (usuario.rol === Rol.ADMIN) {
+  if (usuario.rol === Rol.GERENTE_GENERAL) {
     return true;
   }
   const deLaSucursal = usuario.ubicacionId === pedido.ubicacionDespachoId;
@@ -101,7 +101,7 @@ export function verificarAccion(
   if (!puedeOperar(accion, usuario, pedido)) {
     throw new ForbiddenException(
       accion === 'cancelar'
-        ? 'Solo el operador, el gerente de la sucursal o un administrador cancela pedidos'
+        ? 'Solo el operador, el gerente de la sucursal o el gerente general cancela pedidos'
         : 'Solo el gerente o el cajero de la sucursal de despacho atiende este pedido',
     );
   }

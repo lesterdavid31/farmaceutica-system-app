@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query } from '@
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Auditar } from '../bitacora/auditar.decorator';
 import { Roles, UsuarioActual } from '../common/decoradores';
-import type { UsuarioAutenticado } from '../common/usuario-autenticado';
+import { ROLES_NEGOCIO, type UsuarioAutenticado } from '../common/usuario-autenticado';
 import { Rol } from '../generated/prisma/enums';
 import {
   AjusteDto,
@@ -14,11 +14,12 @@ import {
 } from './inventario.dto';
 import { InventarioService } from './inventario.service';
 
-const LECTURA_INVENTARIO = [Rol.ADMIN, Rol.AUDITOR, Rol.GERENTE] as const;
-const GESTION_INVENTARIO = [Rol.ADMIN, Rol.GERENTE] as const;
+const LECTURA_INVENTARIO = [Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.GERENTE] as const;
+const GESTION_INVENTARIO = [Rol.GERENTE_GENERAL, Rol.GERENTE] as const;
 
 @ApiTags('Inventario')
 @ApiBearerAuth()
+@Roles(...ROLES_NEGOCIO)
 @Controller('inventario')
 export class InventarioController {
   constructor(private readonly inventario: InventarioService) {}

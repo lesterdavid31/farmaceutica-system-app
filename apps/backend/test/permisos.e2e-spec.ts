@@ -15,6 +15,7 @@ const API = '/api/v1';
 
 const CUENTAS = {
   admin: 'admin@farmacia.gt',
+  general: 'gerente.general@farmacia.gt',
   auditor: 'auditor@farmacia.gt',
   operador: 'operador@farmacia.gt',
   gerente: 'gerente.xela@farmacia.gt',
@@ -58,6 +59,7 @@ describe('Autenticación y permisos (e2e)', () => {
   describe('Login (RF-01)', () => {
     it.each([
       ['admin', 'ADMIN', null],
+      ['general', 'GERENTE_GENERAL', null],
       ['auditor', 'AUDITOR', null],
       ['operador', 'OPERADOR_CALL_CENTER', null],
       ['gerente', 'GERENTE', 'CC-XELA'],
@@ -146,11 +148,27 @@ describe('Autenticación y permisos (e2e)', () => {
       ['operador', 'get', '/productos', 200],
       ['cajero', 'get', '/ubicaciones', 200],
       ['cajero', 'get', '/configuracion', 200],
+      // Separación de funciones: TI configura el sistema y el gerente general opera el negocio.
+      ['general', 'get', '/usuarios', 403],
+      ['general', 'get', '/bitacora', 403],
+      ['general', 'get', '/proveedores', 200],
+      ['general', 'get', '/reportes/dashboard', 200],
+      ['admin', 'get', '/proveedores', 403],
+      ['admin', 'get', '/reportes/dashboard', 403],
+      ['admin', 'get', '/ventas', 403],
+      ['admin', 'get', '/pedidos', 403],
+      ['admin', 'get', '/empleados', 403],
+      ['admin', 'get', '/traslados', 403],
+      ['admin', 'get', '/solicitudes-usuario', 200],
+      ['general', 'get', '/solicitudes-usuario', 200],
+      ['gerente', 'get', '/solicitudes-usuario', 200],
+      ['cajero', 'get', '/solicitudes-usuario', 403],
+      ['operador', 'get', '/solicitudes-usuario', 403],
     ] as const)('%s → %s %s responde %i', async (cuenta, metodo, ruta, estado) => {
       await http()[metodo](`${API}${ruta}`).set(como(cuenta)).expect(estado);
     });
 
-    it.each(['auditor', 'gerente', 'cajero', 'operador'] as const)(
+    it.each(['admin', 'auditor', 'gerente', 'cajero', 'operador'] as const)(
       '%s no puede crear productos ni cambiar la configuración',
       async (cuenta) => {
         const producto = await http()
@@ -178,20 +196,33 @@ describe('Autenticación y permisos (e2e)', () => {
   });
 
   describe('Reglas de usuarios', () => {
-    it('no permite un cajero en la bodega central (422)', async () => {
-      const bodega = await prisma.ubicacion.findUniqueOrThrow({ where: { codigo: 'BOD-CENTRAL' } });
-      const res = await http()
-        .post(`${API}/usuarios`)
+    it('TI no crea cuentas de gerente o cajero sin una solicitud aprobada (422)', async () => {
+      const xela = await prisma.ubicacion.findUniqueOrThrow({ where: { codigo: 'CC-XELA' } });
+      for (const rol of ['CAJERO', 'GERENTE']) {
+        const res = await http()
+          .post(`${API}/usuarios`)
+          .set(como('admin'))
+          .send({
+            nombre: 'Cuenta de prueba',
+            email: `prueba.${rol.toLowerCase()}.${Date.now()}@farmacia.gt`,
+            password: 'Prueba2026',
+            rol,
+            ubicacionId: xela.id,
+          })
+          .expect(422);
+        expect((res.body as { message: string }).message).toMatch(/solicitud aprobada/);
+      }
+    });
+
+    it('TI no convierte un usuario existente en cajero sin solicitud (422)', async () => {
+      const operador = await prisma.usuario.findUniqueOrThrow({
+        where: { email: CUENTAS.operador },
+      });
+      await http()
+        .patch(`${API}/usuarios/${operador.id}`)
         .set(como('admin'))
-        .send({
-          nombre: 'Cajero de prueba',
-          email: `cajero.prueba.${Date.now()}@farmacia.gt`,
-          password: 'Prueba2026',
-          rol: 'CAJERO',
-          ubicacionId: bodega.id,
-        })
+        .send({ rol: 'CAJERO' })
         .expect(422);
-      expect(res.body).toMatchObject({ statusCode: 422, error: 'Regla de negocio' });
     });
 
     it('no permite asignar ubicación a un rol global (422)', async () => {
@@ -247,7 +278,7 @@ describe('Autenticación y permisos (e2e)', () => {
       const nombre = `Categoría de prueba ${Date.now()}`;
       const creada = await http()
         .post(`${API}/categorias`)
-        .set(como('admin'))
+        .set(como('general'))
         .send({ nombre, descripcion: 'Original' })
         .expect(201);
       const id = (creada.body as { id: string }).id;
@@ -255,10 +286,10 @@ describe('Autenticación y permisos (e2e)', () => {
 
       await http()
         .patch(`${API}/categorias/${id}`)
-        .set(como('admin'))
+        .set(como('general'))
         .send({ descripcion: 'Modificada' })
         .expect(200);
-      await http().delete(`${API}/categorias/${id}`).set(como('admin')).expect(200);
+      await http().delete(`${API}/categorias/${id}`).set(como('general')).expect(200);
 
       const registros = await prisma.bitacora.findMany({
         where: { entidad: 'Categoria', entidadId: id },
@@ -266,7 +297,7 @@ describe('Autenticación y permisos (e2e)', () => {
         include: { usuario: true },
       });
       expect(registros.map((r) => r.accion)).toEqual(['CREAR', 'ACTUALIZAR', 'DESACTIVAR']);
-      expect(registros.every((r) => r.usuario?.email === CUENTAS.admin)).toBe(true);
+      expect(registros.every((r) => r.usuario?.email === CUENTAS.general)).toBe(true);
       expect(registros[1].datosAntes).toMatchObject({ descripcion: 'Original' });
       expect(registros[1].datosDespues).toMatchObject({ descripcion: 'Modificada' });
       expect(registros[2].datosDespues).toMatchObject({ activa: false });
@@ -304,19 +335,19 @@ describe('Autenticación y permisos (e2e)', () => {
 
   describe('Configuración (RF-03)', () => {
     it('valida rangos y no guarda nada si un valor es inválido', async () => {
-      const antes = await http().get(`${API}/configuracion`).set(como('admin'));
+      const antes = await http().get(`${API}/configuracion`).set(como('general'));
       const res = await http()
         .put(`${API}/configuracion`)
-        .set(como('admin'))
+        .set(como('general'))
         .send({ valores: { TIEMPO_PREPARACION_MIN: 20, DIAS_ALERTA_VENCIMIENTO: 5000 } })
         .expect(422);
       expect((res.body as { detalles: string[] }).detalles[0]).toMatch(/entre 1 y 365/);
-      const despues = await http().get(`${API}/configuracion`).set(como('admin'));
+      const despues = await http().get(`${API}/configuracion`).set(como('general'));
       expect(despues.body).toEqual(antes.body);
     });
 
     it('registra en la bitácora los valores anteriores y nuevos', async () => {
-      const lista = await http().get(`${API}/configuracion`).set(como('admin'));
+      const lista = await http().get(`${API}/configuracion`).set(como('general'));
       const actual = (lista.body as { clave: string; valor: number }[]).find(
         (p) => p.clave === 'TIEMPO_PREPARACION_MIN',
       )!.valor;
@@ -324,7 +355,7 @@ describe('Autenticación y permisos (e2e)', () => {
       // Se guarda el mismo valor para no alterar la configuración de la demo.
       await http()
         .put(`${API}/configuracion`)
-        .set(como('admin'))
+        .set(como('general'))
         .send({ valores: { TIEMPO_PREPARACION_MIN: actual } })
         .expect(200);
       const registro = await prisma.bitacora.findFirstOrThrow({

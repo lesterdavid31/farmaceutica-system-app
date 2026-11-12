@@ -26,6 +26,7 @@ import {
   ScrollText,
   Settings,
   Truck,
+  UserPlus,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -48,10 +49,19 @@ export interface SeccionNavegacion {
   items: ItemNavegacion[];
 }
 
-const TODOS: readonly Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
+/** Todos menos el administrador de TI, que no ve datos del negocio. */
+const NEGOCIO: readonly Rol[] = [
+  'GERENTE_GENERAL',
+  'GERENTE',
+  'CAJERO',
+  'OPERADOR_CALL_CENTER',
+  'AUDITOR',
+];
+const TODOS: readonly Rol[] = ['ADMIN', ...NEGOCIO];
 const ADMINISTRACION: readonly Rol[] = ['ADMIN', 'AUDITOR'];
-const SUPERVISION: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
-const VENTAS: readonly Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
+const CATALOGO: readonly Rol[] = ['GERENTE_GENERAL', 'AUDITOR'];
+const SUPERVISION: readonly Rol[] = ['GERENTE_GENERAL', 'AUDITOR', 'GERENTE'];
+const VENTAS: readonly Rol[] = ['GERENTE_GENERAL', 'AUDITOR', 'GERENTE', 'CAJERO'];
 
 /** La bodega central no vende, no tiene caja ni despacha pedidos: su gerente no ve esas pantallas. */
 const sinBodega = (u: Perfil) => !esGerenteBodega(u);
@@ -66,20 +76,20 @@ export const NAVEGACION: SeccionNavegacion[] = [
         ruta: '/call-center/nuevo-pedido',
         etiqueta: 'Nuevo pedido',
         icono: Headset,
-        roles: ['ADMIN', 'OPERADOR_CALL_CENTER'],
+        roles: ['GERENTE_GENERAL', 'OPERADOR_CALL_CENTER'],
       },
       {
         ruta: '/pedidos',
         etiqueta: 'Pedidos',
         icono: PackageSearch,
-        roles: TODOS,
+        roles: NEGOCIO,
         visible: sinBodega,
       },
       {
         ruta: '/call-center/clientes',
         etiqueta: 'Clientes',
         icono: BookUser,
-        roles: ['ADMIN', 'AUDITOR', 'OPERADOR_CALL_CENTER'],
+        roles: ['GERENTE_GENERAL', 'AUDITOR', 'OPERADOR_CALL_CENTER'],
       },
     ],
   },
@@ -106,7 +116,7 @@ export const NAVEGACION: SeccionNavegacion[] = [
   {
     titulo: 'Inventario',
     items: [
-      { ruta: '/inventario/existencias', etiqueta: 'Existencias', icono: Boxes, roles: TODOS },
+      { ruta: '/inventario/existencias', etiqueta: 'Existencias', icono: Boxes, roles: NEGOCIO },
       { ruta: '/inventario/alertas', etiqueta: 'Alertas', icono: BellRing, roles: SUPERVISION },
       { ruta: '/inventario/kardex', etiqueta: 'Kardex', icono: History, roles: SUPERVISION },
       {
@@ -134,6 +144,12 @@ export const NAVEGACION: SeccionNavegacion[] = [
         etiqueta: 'Reporte de planilla',
         icono: FileSpreadsheet,
         roles: SUPERVISION,
+      },
+      {
+        ruta: '/solicitudes-cuenta',
+        etiqueta: 'Solicitudes de cuenta',
+        icono: UserPlus,
+        roles: ['GERENTE_GENERAL', 'GERENTE'],
       },
     ],
   },
@@ -174,27 +190,33 @@ export const NAVEGACION: SeccionNavegacion[] = [
     ],
   },
   {
-    titulo: 'Administración',
+    titulo: 'Catálogo',
+    items: [
+      { ruta: '/admin/productos', etiqueta: 'Productos', icono: Pill, roles: CATALOGO },
+      { ruta: '/admin/categorias', etiqueta: 'Categorías', icono: FolderTree, roles: CATALOGO },
+      { ruta: '/admin/proveedores', etiqueta: 'Proveedores', icono: Truck, roles: CATALOGO },
+      {
+        ruta: '/admin/configuracion',
+        etiqueta: 'Parámetros del negocio',
+        icono: Settings,
+        roles: CATALOGO,
+      },
+    ],
+  },
+  {
+    titulo: 'Administración del sistema',
     items: [
       { ruta: '/admin/usuarios', etiqueta: 'Usuarios', icono: Users, roles: ADMINISTRACION },
+      {
+        ruta: '/solicitudes-cuenta',
+        etiqueta: 'Solicitudes de cuenta',
+        icono: UserPlus,
+        roles: ADMINISTRACION,
+      },
       {
         ruta: '/admin/ubicaciones',
         etiqueta: 'Ubicaciones',
         icono: Building2,
-        roles: ADMINISTRACION,
-      },
-      { ruta: '/admin/productos', etiqueta: 'Productos', icono: Pill, roles: ADMINISTRACION },
-      {
-        ruta: '/admin/categorias',
-        etiqueta: 'Categorías',
-        icono: FolderTree,
-        roles: ADMINISTRACION,
-      },
-      { ruta: '/admin/proveedores', etiqueta: 'Proveedores', icono: Truck, roles: ADMINISTRACION },
-      {
-        ruta: '/admin/configuracion',
-        etiqueta: 'Configuración',
-        icono: Settings,
         roles: ADMINISTRACION,
       },
       { ruta: '/admin/estado', etiqueta: 'Estado del sistema', icono: Activity, roles: ['ADMIN'] },

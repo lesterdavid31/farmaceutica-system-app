@@ -11,7 +11,7 @@ function usuario(rol: Rol, ubicacionId: string | null = null): UsuarioAutenticad
 }
 
 describe('resolverUbicacion', () => {
-  it.each([Rol.ADMIN, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER])(
+  it.each([Rol.ADMIN, Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER])(
     '%s consulta todas las ubicaciones o la que elija',
     (rol) => {
       expect(resolverUbicacion(usuario(rol))).toBeUndefined();
@@ -34,8 +34,8 @@ describe('resolverUbicacion', () => {
 });
 
 describe('verificarAccesoUbicacion', () => {
-  it('el administrador accede a cualquier ubicación', () => {
-    expect(() => verificarAccesoUbicacion(usuario(Rol.ADMIN), PETEN)).not.toThrow();
+  it('el gerente general accede a cualquier ubicación', () => {
+    expect(() => verificarAccesoUbicacion(usuario(Rol.GERENTE_GENERAL), PETEN)).not.toThrow();
   });
 
   it('el cajero solo accede a la suya', () => {

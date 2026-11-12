@@ -314,7 +314,7 @@ function DialogoCategorias({ abierto, onCerrar }: { abierto: boolean; onCerrar: 
 export function Activos() {
   const navegar = useNavigate();
   const usuario = useUsuario();
-  const admin = usuario.rol === 'ADMIN';
+  const general = usuario.rol === 'GERENTE_GENERAL';
   const { ubicacionId } = useFiltroUbicacion();
   const categorias = useCategorias();
   const [nuevo, setNuevo] = useState(false);
@@ -336,7 +336,7 @@ export function Activos() {
             <Button asChild>
               <Link to="/activos/reporte">Ver reporte</Link>
             </Button>
-            {admin && (
+            {general && (
               <>
                 <Button onClick={() => setViendoCategorias(true)}>
                   <Settings2 size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -398,7 +398,7 @@ export function Activos() {
         ) : listado.data.data.length === 0 ? (
           <EstadoVacio
             texto="No hay activos con estos filtros."
-            accion={admin && <Button onClick={() => setNuevo(true)}>Registrar activo</Button>}
+            accion={general && <Button onClick={() => setNuevo(true)}>Registrar activo</Button>}
           />
         ) : (
           <>
@@ -563,7 +563,7 @@ function FormularioTraslado({
 
 export function DetalleActivo() {
   const { id } = useParams();
-  const admin = useUsuario().rol === 'ADMIN';
+  const general = useUsuario().rol === 'GERENTE_GENERAL';
   const [dialogo, setDialogo] = useState<'editar' | 'trasladar' | 'baja' | null>(null);
   const consulta = useQuery({
     queryKey: ['activos', 'detalle', id],
@@ -584,7 +584,7 @@ export function DetalleActivo() {
         descripcion={a && `${a.categoria.nombre} · ${a.ubicacion.nombre}`}
         acciones={
           <>
-            {admin && a?.activo && (
+            {general && a?.activo && (
               <>
                 <Button variant="terciario" onClick={() => setDialogo('baja')}>
                   Dar de baja

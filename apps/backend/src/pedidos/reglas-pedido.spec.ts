@@ -34,6 +34,16 @@ describe('ciclo de vida (RN-19)', () => {
     expect(accionesDisponibles(pedido(EstadoPedido.PENDIENTE), gerenteOtro)).toEqual([]);
   });
 
+  it('el gerente general opera cualquier pedido; el administrador de TI, ninguno', () => {
+    const general = { rol: Rol.GERENTE_GENERAL, ubicacionId: null };
+    const ti = { rol: Rol.ADMIN, ubicacionId: null };
+    expect(accionesDisponibles(pedido(EstadoPedido.PENDIENTE), general)).toEqual([
+      'preparar',
+      'cancelar',
+    ]);
+    expect(accionesDisponibles(pedido(EstadoPedido.PENDIENTE), ti)).toEqual([]);
+  });
+
   it('rechaza con 403 al usuario sin permiso y con 422 el estado incorrecto', () => {
     expect(() => verificarAccion('preparar', pedido(EstadoPedido.PENDIENTE), operador)).toThrow(
       ForbiddenException,

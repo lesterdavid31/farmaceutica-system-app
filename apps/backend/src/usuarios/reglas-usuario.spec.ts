@@ -6,10 +6,13 @@ const stand = { tipo: TipoUbicacion.STAND_GASOLINERA, activa: true };
 const bodega = { tipo: TipoUbicacion.BODEGA_CENTRAL, activa: true };
 
 describe('validarRolUbicacion', () => {
-  it.each([Rol.ADMIN, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER])('%s no lleva ubicación', (rol) => {
-    expect(() => validarRolUbicacion(rol, null)).not.toThrow();
-    expect(() => validarRolUbicacion(rol, farmacia)).toThrow(/no llevan ubicación/);
-  });
+  it.each([Rol.ADMIN, Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER])(
+    '%s no lleva ubicación',
+    (rol) => {
+      expect(() => validarRolUbicacion(rol, null)).not.toThrow();
+      expect(() => validarRolUbicacion(rol, farmacia)).toThrow(/no llevan ubicación/);
+    },
+  );
 
   it.each([Rol.GERENTE, Rol.CAJERO])('%s requiere ubicación', (rol) => {
     expect(() => validarRolUbicacion(rol, null)).toThrow(/deben tener una ubicación/);

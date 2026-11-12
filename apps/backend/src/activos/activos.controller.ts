@@ -25,10 +25,10 @@ import {
 } from './activos.dto';
 import { ActivosService } from './activos.service';
 
-/** Los activos los gestiona el administrador; el auditor consulta todo y el gerente, su sucursal. */
+/** Los activos los gestiona el gerente general; el auditor consulta todo y el gerente, su sucursal. */
 @ApiTags('Activos fijos')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.GERENTE)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.GERENTE)
 @Controller('activos')
 export class ActivosController {
   constructor(private readonly activos: ActivosService) {}
@@ -52,7 +52,7 @@ export class ActivosController {
   }
 
   @Patch('categorias/:id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'CategoriaActivo', modelo: 'categoriaActivo' })
   @ApiOperation({ summary: 'Cambiar la vida útil por defecto de una categoría' })
   actualizarCategoria(
@@ -69,7 +69,7 @@ export class ActivosController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'ActivoFijo' })
   @ApiOperation({ summary: 'Registrar activo (RF-29)' })
   crear(@Body() dto: CrearActivoDto, @UsuarioActual() usuario: UsuarioAutenticado) {
@@ -77,7 +77,7 @@ export class ActivosController {
   }
 
   @Patch(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'ActivoFijo', modelo: 'activoFijo' })
   @ApiOperation({ summary: 'Actualizar activo (la ubicación se cambia con un traslado)' })
   actualizar(
@@ -89,7 +89,7 @@ export class ActivosController {
   }
 
   @Delete(':id')
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'ActivoFijo', modelo: 'activoFijo', accion: 'DAR_DE_BAJA' })
   @ApiOperation({ summary: 'Dar de baja (no se borra)' })
   darDeBaja(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() usuario: UsuarioAutenticado) {
@@ -98,7 +98,7 @@ export class ActivosController {
 
   @Post(':id/trasladar')
   @HttpCode(200)
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @Auditar({ entidad: 'ActivoFijo', modelo: 'activoFijo', accion: 'TRASLADAR' })
   @ApiOperation({ summary: 'Trasladar a otra ubicación, con historial (RF-30)' })
   trasladar(

@@ -278,7 +278,7 @@ function PanelGrafica({
 }
 
 /**
- * Dashboard ejecutivo (ADMIN y AUDITOR, filtrable por ubicación en la barra superior) y de
+ * Dashboard ejecutivo (GERENTE_GENERAL y AUDITOR, filtrable por ubicación en la barra superior) y de
  * sucursal (GERENTE, su ubicación): RF-32 y RF-37.
  */
 export function Dashboard() {

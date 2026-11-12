@@ -175,7 +175,7 @@ export function NuevoTraslado() {
       <Pagina>
         <h1 className="m-0 text-pagina font-semibold">Sin acceso</h1>
         <p className="mt-2 text-cuerpo text-texto-secundario">
-          Solo los gerentes y el administrador solicitan traslados.
+          Solo los gerentes y el gerente general solicitan traslados.
         </p>
       </Pagina>
     );

@@ -59,7 +59,7 @@ function MenuLateral({ onNavegar }: { onNavegar?: () => void }) {
   );
 }
 
-/** Selector de ubicación para filtrar, solo para ADMIN y AUDITOR (sección 8). */
+/** Selector de ubicación para filtrar, solo para GERENTE_GENERAL y AUDITOR (sección 8). */
 function SelectorUbicacion() {
   const { ubicacionId, setUbicacionId } = useFiltroUbicacion();
   const { data } = useQuery({

@@ -97,7 +97,7 @@ function FormularioCategoria({
 }
 
 export function Categorias() {
-  const puedeEditar = useUsuario().rol === 'ADMIN';
+  const puedeEditar = useUsuario().rol === 'GERENTE_GENERAL';
   const listado = useListado<Categoria, { q: string; activa: string }>('categorias', {
     q: '',
     activa: 'true',

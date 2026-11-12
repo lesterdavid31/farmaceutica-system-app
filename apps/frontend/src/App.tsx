@@ -21,6 +21,10 @@ const Productos = diferida(() => import('@/pages/admin/Productos'), 'Productos')
 const Proveedores = diferida(() => import('@/pages/admin/Proveedores'), 'Proveedores');
 const Ubicaciones = diferida(() => import('@/pages/admin/Ubicaciones'), 'Ubicaciones');
 const Usuarios = diferida(() => import('@/pages/admin/Usuarios'), 'Usuarios');
+const SolicitudesCuenta = diferida(
+  () => import('@/pages/admin/SolicitudesCuenta'),
+  'SolicitudesCuenta',
+);
 const EstadoSistema = diferida(() => import('@/pages/EstadoSistema'), 'EstadoSistema');
 const Existencias = diferida(() => import('@/pages/inventario/Existencias'), 'Existencias');
 const Kardex = diferida(() => import('@/pages/inventario/Kardex'), 'Kardex');
@@ -63,11 +67,16 @@ const DetalleTraslado = diferida(
   'DetalleTraslado',
 );
 
-const TODOS: Rol[] = ['ADMIN', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
+/** Todos menos el administrador de TI, que no ve datos del negocio. */
+const NEGOCIO: Rol[] = ['GERENTE_GENERAL', 'GERENTE', 'CAJERO', 'OPERADOR_CALL_CENTER', 'AUDITOR'];
+/** Configuración del sistema: la opera TI y el auditor la consulta. */
 const ADMINISTRACION: Rol[] = ['ADMIN', 'AUDITOR'];
-const SUPERVISION: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE'];
-const VENTAS: Rol[] = ['ADMIN', 'AUDITOR', 'GERENTE', 'CAJERO'];
-const CALL_CENTER: Rol[] = ['ADMIN', 'AUDITOR', 'OPERADOR_CALL_CENTER'];
+/** Catálogo y parámetros del negocio: los opera el gerente general. */
+const CATALOGO: Rol[] = ['GERENTE_GENERAL', 'AUDITOR'];
+const SUPERVISION: Rol[] = ['GERENTE_GENERAL', 'AUDITOR', 'GERENTE'];
+const VENTAS: Rol[] = ['GERENTE_GENERAL', 'AUDITOR', 'GERENTE', 'CAJERO'];
+const CALL_CENTER: Rol[] = ['GERENTE_GENERAL', 'AUDITOR', 'OPERADOR_CALL_CENTER'];
+const SOLICITUDES: Rol[] = ['ADMIN', 'GERENTE_GENERAL', 'GERENTE', 'AUDITOR'];
 
 /** La bodega central no vende, no tiene caja ni despacha pedidos. */
 const sinBodega = (u: Perfil) => !esGerenteBodega(u);
@@ -86,7 +95,7 @@ const solo = (roles: Rol[], pantalla: ReactNode, visible?: (u: Perfil) => boolea
   </SoloRoles>
 );
 
-/** ADMIN, AUDITOR y GERENTE entran a su dashboard (RF-32, RF-37); los demás, a sus módulos. */
+/** GERENTE_GENERAL, AUDITOR y GERENTE entran a su dashboard (RF-32, RF-37); los demás, a sus módulos. */
 function PaginaInicio() {
   const usuario = useUsuario();
   return tieneRol(usuario, SUPERVISION) ? (
@@ -138,14 +147,14 @@ const router = createBrowserRouter([
         element: solo(SUPERVISION, <FlujoEfectivo />, sinBodega),
       },
       { path: 'auditoria/movimientos', element: solo(SUPERVISION, <MovimientoMedicamentos />) },
-      { path: 'inventario/existencias', element: solo(TODOS, <Existencias />) },
+      { path: 'inventario/existencias', element: solo(NEGOCIO, <Existencias />) },
       { path: 'inventario/alertas', element: solo(SUPERVISION, <Alertas />) },
       { path: 'inventario/kardex', element: solo(SUPERVISION, <Kardex />) },
       { path: 'compras', element: solo(SUPERVISION, <Compras />) },
-      { path: 'compras/nueva', element: solo(['ADMIN', 'GERENTE'], <NuevaCompra />) },
+      { path: 'compras/nueva', element: solo(['GERENTE_GENERAL', 'GERENTE'], <NuevaCompra />) },
       { path: 'compras/:id', element: solo(SUPERVISION, <DetalleCompra />) },
       { path: 'traslados', element: solo(SUPERVISION, <Traslados />) },
-      { path: 'traslados/nuevo', element: solo(['ADMIN', 'GERENTE'], <NuevoTraslado />) },
+      { path: 'traslados/nuevo', element: solo(['GERENTE_GENERAL', 'GERENTE'], <NuevoTraslado />) },
       { path: 'traslados/:id', element: solo(SUPERVISION, <DetalleTraslado />) },
       { path: 'punto-de-venta', element: solo(['CAJERO'], <PuntoVenta />) },
       { path: 'caja', element: solo(['CAJERO'], <Caja />) },
@@ -155,12 +164,12 @@ const router = createBrowserRouter([
       { path: 'ventas/:id', element: solo(VENTAS, <DetalleVenta />, sinBodega) },
       {
         path: 'call-center/nuevo-pedido',
-        element: solo(['ADMIN', 'OPERADOR_CALL_CENTER'], <NuevoPedido />),
+        element: solo(['GERENTE_GENERAL', 'OPERADOR_CALL_CENTER'], <NuevoPedido />),
       },
       { path: 'call-center/clientes', element: solo(CALL_CENTER, <Clientes />) },
       { path: 'call-center/clientes/:id', element: solo(CALL_CENTER, <DetalleCliente />) },
-      { path: 'pedidos', element: solo(TODOS, <Pedidos />, sinBodega) },
-      { path: 'pedidos/:id', element: solo(TODOS, <DetallePedido />, sinBodega) },
+      { path: 'pedidos', element: solo(NEGOCIO, <Pedidos />, sinBodega) },
+      { path: 'pedidos/:id', element: solo(NEGOCIO, <DetallePedido />, sinBodega) },
       { path: 'planilla/empleados', element: solo(SUPERVISION, <Empleados />) },
       { path: 'planilla/planillas', element: solo(SUPERVISION, <Planillas />) },
       { path: 'planilla/planillas/:id', element: solo(SUPERVISION, <DetallePlanilla />) },
@@ -171,11 +180,12 @@ const router = createBrowserRouter([
       { path: 'auditoria/bitacora', element: solo(ADMINISTRACION, <Bitacora />) },
       { path: 'admin/usuarios', element: solo(ADMINISTRACION, <Usuarios />) },
       { path: 'admin/ubicaciones', element: solo(ADMINISTRACION, <Ubicaciones />) },
-      { path: 'admin/productos', element: solo(ADMINISTRACION, <Productos />) },
-      { path: 'admin/categorias', element: solo(ADMINISTRACION, <Categorias />) },
-      { path: 'admin/proveedores', element: solo(ADMINISTRACION, <Proveedores />) },
-      { path: 'admin/configuracion', element: solo(ADMINISTRACION, <Configuracion />) },
+      { path: 'admin/productos', element: solo(CATALOGO, <Productos />) },
+      { path: 'admin/categorias', element: solo(CATALOGO, <Categorias />) },
+      { path: 'admin/proveedores', element: solo(CATALOGO, <Proveedores />) },
+      { path: 'admin/configuracion', element: solo(CATALOGO, <Configuracion />) },
       { path: 'admin/estado', element: solo(['ADMIN'], <EstadoSistema />) },
+      { path: 'solicitudes-cuenta', element: solo(SOLICITUDES, <SolicitudesCuenta />) },
       { path: '*', element: <NoEncontrada /> },
     ],
   },

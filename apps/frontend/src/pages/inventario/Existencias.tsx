@@ -62,8 +62,8 @@ function Cantidad({ valor, tono }: { valor: number; tono?: 'ambar' | 'ladrillo' 
 export function Existencias() {
   const usuario = useUsuario();
   const { ubicacionId } = useFiltroUbicacion();
-  const puedeGestionar = tieneRol(usuario, ['ADMIN', 'GERENTE']);
-  const verKardex = tieneRol(usuario, ['ADMIN', 'AUDITOR', 'GERENTE']);
+  const puedeGestionar = tieneRol(usuario, ['GERENTE_GENERAL', 'GERENTE']);
+  const verKardex = tieneRol(usuario, ['GERENTE_GENERAL', 'AUDITOR', 'GERENTE']);
   const [vista, setVista] = useState<Vista>('conExistencia');
   const listado = useListado<
     ExistenciaProducto,

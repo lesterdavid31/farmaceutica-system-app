@@ -22,7 +22,7 @@ function leer(usuarioId: string) {
 }
 
 /**
- * Filtro de ubicación de la barra superior (solo ADMIN y AUDITOR, sección 8).
+ * Filtro de ubicación de la barra superior (solo GERENTE_GENERAL y AUDITOR, sección 8).
  * Para GERENTE y CAJERO siempre es su propia ubicación; el backend lo hace cumplir igual.
  * El OPERADOR_CALL_CENTER no tiene selector: siempre ve todas las ubicaciones.
  */

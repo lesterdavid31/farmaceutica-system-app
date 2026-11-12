@@ -7,10 +7,10 @@ import { Rol } from '../generated/prisma/enums';
 import { AbrirTurnoDto, CerrarTurnoDto, FiltroTurnosDto, MovimientoManualDto } from './caja.dto';
 import { CajaService } from './caja.service';
 
-/** Operan la caja los cajeros; ADMIN, AUDITOR y GERENTE consultan los turnos. */
+/** Operan la caja los cajeros; GERENTE_GENERAL, AUDITOR y GERENTE consultan los turnos. */
 @ApiTags('Caja')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.GERENTE, Rol.CAJERO)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.GERENTE, Rol.CAJERO)
 @Controller('caja')
 export class CajaController {
   constructor(private readonly caja: CajaService) {}

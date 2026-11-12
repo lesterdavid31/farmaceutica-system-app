@@ -109,7 +109,7 @@ describe('Planilla y activos fijos (e2e)', () => {
     bonificacion = await configuracion.obtener('BONIFICACION_INCENTIVO');
     porcentajeIgss = await configuracion.obtener('PORCENTAJE_IGSS_LABORAL');
 
-    for (const cuenta of ['admin', 'auditor', 'gerente.xela', 'cajero.xela']) {
+    for (const cuenta of ['gerente.general', 'auditor', 'gerente.xela', 'cajero.xela']) {
       const u = await prisma.usuario.findUniqueOrThrow({
         where: { email: `${cuenta}@farmacia.gt` },
       });
@@ -138,7 +138,7 @@ describe('Planilla y activos fijos (e2e)', () => {
         const id = await planillas.generarEn(
           tx,
           { ubicacionId: e.ubicacion.id, anio: 2026, mes: 9 },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         const p = await tx.planilla.findUniqueOrThrow({
           where: { id },
@@ -159,7 +159,7 @@ describe('Planilla y activos fijos (e2e)', () => {
         const octubre = await planillas.generarEn(
           tx,
           { ubicacionId: e.ubicacion.id, anio: 2026, mes: 10 },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         expect(await tx.detallePlanilla.count({ where: { planillaId: octubre } })).toBe(3);
       });
@@ -171,7 +171,7 @@ describe('Planilla y activos fijos (e2e)', () => {
         const id = await planillas.generarEn(
           tx,
           { ubicacionId: e.ubicacion.id, anio: 2026, mes: 9 },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         const linea = await tx.detallePlanilla.findFirstOrThrow({
           where: { planillaId: id, empleadoId: e.beto.id },
@@ -181,7 +181,7 @@ describe('Planilla y activos fijos (e2e)', () => {
           id,
           linea.id,
           { bonificacion: 300, otrosDescuentos: 125.5 },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         const editada = await tx.detallePlanilla.findUniqueOrThrow({ where: { id: linea.id } });
         expect(editada.igss.equals(linea.igss)).toBe(true);
@@ -194,7 +194,13 @@ describe('Planilla y activos fijos (e2e)', () => {
           lineas.reduce((s, x) => s + x.liquido.toNumber(), 0).toFixed(2),
         );
         await expect(
-          planillas.editarLineaEn(tx, id, linea.id, { otrosDescuentos: 5000 }, usuarios.admin),
+          planillas.editarLineaEn(
+            tx,
+            id,
+            linea.id,
+            { otrosDescuentos: 5000 },
+            usuarios['gerente.general'],
+          ),
         ).rejects.toThrow('superan lo devengado');
       });
     });
@@ -205,22 +211,30 @@ describe('Planilla y activos fijos (e2e)', () => {
         const id = await planillas.generarEn(
           tx,
           { ubicacionId: e.ubicacion.id, anio: 2026, mes: 8 },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
-        await planillas.cerrarEn(tx, id, usuarios.admin);
+        await planillas.cerrarEn(tx, id, usuarios['gerente.general']);
         const p = await tx.planilla.findUniqueOrThrow({
           where: { id },
           include: { detalles: true },
         });
         expect(p).toMatchObject({
           estado: EstadoPlanilla.CERRADA,
-          cerradaPorId: usuarios.admin.id,
+          cerradaPorId: usuarios['gerente.general'].id,
         });
         expect(p.fechaCierre).not.toBeNull();
         await expect(
-          planillas.editarLineaEn(tx, id, p.detalles[0].id, { bonificacion: 0 }, usuarios.admin),
+          planillas.editarLineaEn(
+            tx,
+            id,
+            p.detalles[0].id,
+            { bonificacion: 0 },
+            usuarios['gerente.general'],
+          ),
         ).rejects.toThrow('está cerrada');
-        await expect(planillas.cerrarEn(tx, id, usuarios.admin)).rejects.toThrow('está cerrada');
+        await expect(planillas.cerrarEn(tx, id, usuarios['gerente.general'])).rejects.toThrow(
+          'está cerrada',
+        );
       });
     });
 
@@ -231,9 +245,9 @@ describe('Planilla y activos fijos (e2e)', () => {
           const id = await planillas.generarEn(
             tx,
             { ubicacionId: e.ubicacion.id, anio: 2026, mes: 8 },
-            usuarios.admin,
+            usuarios['gerente.general'],
           );
-          await planillas.cerrarEn(tx, id, usuarios.admin);
+          await planillas.cerrarEn(tx, id, usuarios['gerente.general']);
           await tx.detallePlanilla.updateMany({
             where: { planillaId: id },
             data: { otrosDescuentos: 1, liquido: { decrement: 1 } },
@@ -246,8 +260,8 @@ describe('Planilla y activos fijos (e2e)', () => {
       await revertida(async (tx) => {
         const e = await escenario(tx);
         const mes = { ubicacionId: e.ubicacion.id, anio: 2026, mes: 9 };
-        await planillas.generarEn(tx, mes, usuarios.admin);
-        await expect(planillas.generarEn(tx, mes, usuarios.admin)).rejects.toThrow(
+        await planillas.generarEn(tx, mes, usuarios['gerente.general']);
+        await expect(planillas.generarEn(tx, mes, usuarios['gerente.general'])).rejects.toThrow(
           'Ya existe la planilla de septiembre de 2026',
         );
         const hoy = hoyGuatemala();
@@ -255,14 +269,14 @@ describe('Planilla y activos fijos (e2e)', () => {
           planillas.generarEn(
             tx,
             { ...mes, anio: hoy.getUTCFullYear() + 1, mes: 1 },
-            usuarios.admin,
+            usuarios['gerente.general'],
           ),
         ).rejects.toThrow('mes futuro');
         await expect(
           planillas.generarEn(tx, { ...mes, mes: 7 }, usuarios['gerente.xela']),
         ).rejects.toThrow('Solo puede acceder a los datos de su ubicación');
         await expect(
-          planillas.generarEn(tx, { ...mes, ubicacionId: e.otra.id }, usuarios.admin),
+          planillas.generarEn(tx, { ...mes, ubicacionId: e.otra.id }, usuarios['gerente.general']),
         ).rejects.toThrow('no tiene empleados activos');
       });
     });
@@ -273,17 +287,17 @@ describe('Planilla y activos fijos (e2e)', () => {
         const agosto = await planillas.generarEn(
           tx,
           { ubicacionId: e.ubicacion.id, anio: 2026, mes: 8 },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
-        await planillas.cerrarEn(tx, agosto, usuarios.admin);
+        await planillas.cerrarEn(tx, agosto, usuarios['gerente.general']);
         await planillas.generarEn(
           tx,
           { ubicacionId: e.ubicacion.id, anio: 2026, mes: 9 },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         const r = await planillas.reporte(
           { anio: 2026, ubicacionId: e.ubicacion.id },
-          usuarios.admin,
+          usuarios['gerente.general'],
           tx,
         );
         const totalAgosto = (await tx.planilla.findUniqueOrThrow({ where: { id: agosto } })).total;
@@ -313,13 +327,13 @@ describe('Planilla y activos fijos (e2e)', () => {
             costo: 9000,
             valorResidual: 900,
           },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         const a = await tx.activoFijo.findUniqueOrThrow({ where: { id } });
         expect(a.vidaUtilMeses).toBe(36);
         const r = await activos.reporte(
           { fecha: '2026-04-10', categoriaId: e.categoria.id },
-          usuarios.admin,
+          usuarios['gerente.general'],
           tx,
         );
         expect(r.activos).toHaveLength(1);
@@ -330,13 +344,13 @@ describe('Planilla y activos fijos (e2e)', () => {
         // Antes de adquirirlo no aparece; al final de su vida útil vale el residual.
         const antes = await activos.reporte(
           { fecha: '2024-12-31', categoriaId: e.categoria.id },
-          usuarios.admin,
+          usuarios['gerente.general'],
           tx,
         );
         expect(antes.activos).toHaveLength(0);
         const fin = await activos.reporte(
           { fecha: '2030-01-01', categoriaId: e.categoria.id },
-          usuarios.admin,
+          usuarios['gerente.general'],
           tx,
         );
         expect(fin.totales.valorEnLibros.toFixed(2)).toBe('900.00');
@@ -359,14 +373,14 @@ describe('Planilla y activos fijos (e2e)', () => {
               valorResidual: 0,
               vidaUtilMeses: 10,
             },
-            usuarios.admin,
+            usuarios['gerente.general'],
           );
         await alta('A1', e.ubicacion.id, 1000);
         await alta('A2', e.ubicacion.id, 2000);
         await alta('B1', e.otra.id, 500);
         const r = await activos.reporte(
           { fecha: '2026-06-01', categoriaId: e.categoria.id },
-          usuarios.admin,
+          usuarios['gerente.general'],
           tx,
         );
         // 5 de 10 meses: la mitad depreciada.
@@ -394,21 +408,21 @@ describe('Planilla y activos fijos (e2e)', () => {
             fechaAdquisicion: '2025-06-01',
             costo: 5000,
           },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         await expect(
           activos.trasladarEn(
             tx,
             id,
             { ubicacionDestinoId: e.ubicacion.id, motivo: 'Mismo lugar' },
-            usuarios.admin,
+            usuarios['gerente.general'],
           ),
         ).rejects.toThrow('ya está en esa ubicación');
         await activos.trasladarEn(
           tx,
           id,
           { ubicacionDestinoId: e.otra.id, motivo: 'Apertura de la otra sucursal' },
-          usuarios.admin,
+          usuarios['gerente.general'],
         );
         const historial = await tx.historialUbicacionActivo.findMany({
           where: { activoId: id },
@@ -421,14 +435,14 @@ describe('Planilla y activos fijos (e2e)', () => {
         const hoy = hoyGuatemala().toISOString().slice(0, 10);
         const ahora = await activos.reporte(
           { fecha: hoy, categoriaId: e.categoria.id },
-          usuarios.admin,
+          usuarios['gerente.general'],
           tx,
         );
         expect(ahora.activos[0].ubicacion.id).toBe(e.otra.id);
         // Antes del traslado (registrado hoy) estaba en su ubicación original.
         const antes = await activos.reporte(
           { fecha: '2026-01-01', categoriaId: e.categoria.id },
-          usuarios.admin,
+          usuarios['gerente.general'],
           tx,
         );
         expect(antes.activos[0].ubicacion.id).toBe(e.ubicacion.id);
@@ -439,7 +453,7 @@ describe('Planilla y activos fijos (e2e)', () => {
             tx,
             id,
             { ubicacionDestinoId: e.ubicacion.id, motivo: 'Regreso' },
-            usuarios.admin,
+            usuarios['gerente.general'],
           ),
         ).rejects.toThrow('dado de baja');
       });
@@ -457,13 +471,17 @@ describe('Planilla y activos fijos (e2e)', () => {
           costo: 1000,
         };
         await expect(
-          activos.crearEn(tx, { ...base, valorResidual: 1000.01 }, usuarios.admin),
+          activos.crearEn(tx, { ...base, valorResidual: 1000.01 }, usuarios['gerente.general']),
         ).rejects.toThrow('residual no puede ser mayor');
         await expect(
-          activos.crearEn(tx, { ...base, fechaAdquisicion: '2099-01-01' }, usuarios.admin),
+          activos.crearEn(
+            tx,
+            { ...base, fechaAdquisicion: '2099-01-01' },
+            usuarios['gerente.general'],
+          ),
         ).rejects.toThrow('no puede ser futura');
-        await activos.crearEn(tx, base, usuarios.admin);
-        await expect(activos.crearEn(tx, base, usuarios.admin)).rejects.toThrow(
+        await activos.crearEn(tx, base, usuarios['gerente.general']);
+        await expect(activos.crearEn(tx, base, usuarios['gerente.general'])).rejects.toThrow(
           'Ya existe un activo con ese código',
         );
       });
@@ -509,12 +527,12 @@ describe('Planilla y activos fijos (e2e)', () => {
         .expect(403);
       await http()
         .post(`${API}/empleados`)
-        .set(como('admin'))
+        .set(como('gerente.general'))
         .send({ nombres: 'X', dpi: '123' })
         .expect(400);
     });
 
-    it('activos: solo el administrador registra; gerente y auditor consultan', async () => {
+    it('activos: solo el gerente general registra; gerente y auditor consultan', async () => {
       await http().get(`${API}/activos`).set(como('gerente.xela')).expect(200);
       await http().get(`${API}/activos/reporte`).set(como('auditor')).expect(200);
       await http().get(`${API}/activos/categorias`).set(como('auditor')).expect(200);
@@ -522,7 +540,7 @@ describe('Planilla y activos fijos (e2e)', () => {
       await http().post(`${API}/activos`).set(como('auditor')).send({}).expect(403);
       await http()
         .post(`${API}/activos/${randomUUID()}/trasladar`)
-        .set(como('admin'))
+        .set(como('gerente.general'))
         .send({ ubicacionDestinoId: randomUUID(), motivo: 'Prueba de 404' })
         .expect(404);
     });

@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useFiltroUbicacion } from '@/auth/filtro-ubicacion';
@@ -25,9 +26,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { api, type Pagina as PaginaApi } from '@/lib/api';
+import { api, query, type Pagina as PaginaApi } from '@/lib/api';
 import { useCatalogo, useListado, useMutacion } from '@/lib/consultas';
-import { PUESTOS, type Empleado, type Puesto, type Ubicacion } from '@/lib/dominio';
+import {
+  PUESTOS,
+  ROLES,
+  type Empleado,
+  type Puesto,
+  type Ubicacion,
+  type UsuarioDisponible,
+} from '@/lib/dominio';
 import { formatearFecha, formatearMoneda } from '@/lib/formato';
 
 function hoyLocal() {
@@ -43,7 +51,7 @@ function FormularioEmpleado({
   onTerminar: () => void;
 }) {
   const usuario = useUsuario();
-  const admin = usuario.rol === 'ADMIN';
+  const general = usuario.rol === 'GERENTE_GENERAL';
   const ubicaciones = useCatalogo<PaginaApi<Ubicacion>>(
     'ubicaciones',
     '/ubicaciones?limit=100&activa=true',
@@ -56,6 +64,16 @@ function FormularioEmpleado({
     salarioBase: empleado?.salarioBase ?? '',
     ubicacionId: empleado?.ubicacionId ?? usuario.ubicacion?.id ?? '',
     fechaIngreso: empleado?.fechaIngreso.slice(0, 10) ?? hoyLocal(),
+    usuarioId: empleado?.usuarioId ?? '',
+  });
+  // Cuentas activas de la ubicación sin otro empleado (incluida la actual, al editar).
+  const disponibles = useQuery({
+    queryKey: ['empleados', 'usuarios-disponibles', valores.ubicacionId, empleado?.id],
+    queryFn: () =>
+      api.get<UsuarioDisponible[]>(
+        `/empleados/usuarios-disponibles${query({ ubicacionId: valores.ubicacionId, empleadoId: empleado?.id })}`,
+      ),
+    enabled: Boolean(valores.ubicacionId),
   });
   const [enviado, setEnviado] = useState(false);
   const cambiar = (clave: keyof typeof valores, valor: string) =>
@@ -83,7 +101,8 @@ function FormularioEmpleado({
         puesto: valores.puesto,
         salarioBase: Number(valores.salarioBase),
         fechaIngreso: valores.fechaIngreso,
-        ...(admin || !empleado ? { ubicacionId: valores.ubicacionId } : {}),
+        usuarioId: valores.usuarioId || null,
+        ...(general || !empleado ? { ubicacionId: valores.ubicacionId } : {}),
       };
       return empleado
         ? api.patch(`/empleados/${empleado.id}`, cuerpo)
@@ -176,19 +195,44 @@ function FormularioEmpleado({
           id="ubicacionEmpleado"
           etiqueta="Ubicación"
           className="sm:col-span-2"
-          ayuda={!admin ? 'Solo el administrador traslada empleados a otra ubicación' : undefined}
+          ayuda={
+            !general ? 'Solo el gerente general traslada empleados a otra ubicación' : undefined
+          }
           error={enviado ? errores.ubicacionId : undefined}
         >
           <Select
             id="ubicacionEmpleado"
-            disabled={!admin}
+            disabled={!general}
             value={valores.ubicacionId}
-            onChange={(e) => cambiar('ubicacionId', e.target.value)}
+            onChange={(e) =>
+              // La cuenta pertenece a una ubicación: al cambiarla se vuelve a elegir.
+              setValores((v) => ({ ...v, ubicacionId: e.target.value, usuarioId: '' }))
+            }
           >
             <option value="">Seleccione la ubicación</option>
             {ubicaciones.data?.data.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.nombre}
+              </option>
+            ))}
+          </Select>
+        </Campo>
+        <Campo
+          id="usuarioEmpleado"
+          etiqueta="Usuario del sistema"
+          className="sm:col-span-2"
+          ayuda="Opcional. Si la persona no tiene cuenta, pídala en Solicitudes de cuenta. Los repartidores y bodegueros no la necesitan."
+        >
+          <Select
+            id="usuarioEmpleado"
+            disabled={!valores.ubicacionId || disponibles.isPending}
+            value={valores.usuarioId}
+            onChange={(e) => cambiar('usuarioId', e.target.value)}
+          >
+            <option value="">Sin usuario</option>
+            {disponibles.data?.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.nombre} · {u.email} ({ROLES[u.rol]})
               </option>
             ))}
           </Select>
@@ -208,7 +252,7 @@ function FormularioEmpleado({
 
 export function Empleados() {
   const usuario = useUsuario();
-  const puedeEditar = tieneRol(usuario, ['ADMIN', 'GERENTE']);
+  const puedeEditar = tieneRol(usuario, ['GERENTE_GENERAL', 'GERENTE']);
   const { ubicacionId } = useFiltroUbicacion();
   const [editando, setEditando] = useState<Empleado | 'nuevo' | null>(null);
   const [baja, setBaja] = useState<Empleado | null>(null);

@@ -12,10 +12,10 @@ import {
 } from './traslados.dto';
 import { TrasladosService } from './traslados.service';
 
-/** Lectura: ADMIN y AUDITOR ven todos; GERENTE, los que salen de su ubicación o llegan a ella. */
+/** Lectura: GERENTE_GENERAL y AUDITOR ven todos; GERENTE, los que salen de su ubicación o llegan a ella. */
 @ApiTags('Traslados')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.GERENTE)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.GERENTE)
 @Controller('traslados')
 export class TrasladosController {
   constructor(private readonly traslados: TrasladosService) {}
@@ -33,7 +33,7 @@ export class TrasladosController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN, Rol.GERENTE)
+  @Roles(Rol.GERENTE_GENERAL, Rol.GERENTE)
   @Auditar({ entidad: 'Traslado', accion: 'SOLICITAR' })
   @ApiOperation({ summary: 'Solicitar un traslado (RF-11)' })
   crear(@Body() dto: CrearTrasladoDto, @UsuarioActual() usuario: UsuarioAutenticado) {
@@ -42,16 +42,16 @@ export class TrasladosController {
 
   @Post(':id/aprobar')
   @HttpCode(200)
-  @Roles(Rol.ADMIN, Rol.GERENTE)
+  @Roles(Rol.GERENTE_GENERAL, Rol.GERENTE)
   @Auditar({ entidad: 'Traslado', modelo: 'traslado', accion: 'APROBAR' })
-  @ApiOperation({ summary: 'Aprobar (ADMIN o gerente de origen)' })
+  @ApiOperation({ summary: 'Aprobar (gerente general o gerente de origen)' })
   aprobar(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() usuario: UsuarioAutenticado) {
     return this.traslados.aprobar(id, usuario);
   }
 
   @Post(':id/despachar')
   @HttpCode(200)
-  @Roles(Rol.ADMIN, Rol.GERENTE)
+  @Roles(Rol.GERENTE_GENERAL, Rol.GERENTE)
   @Auditar({ entidad: 'Traslado', modelo: 'traslado', accion: 'DESPACHAR' })
   @ApiOperation({ summary: 'Despachar: descuenta del origen por FEFO (RN-09)' })
   despachar(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() usuario: UsuarioAutenticado) {
@@ -60,7 +60,7 @@ export class TrasladosController {
 
   @Post(':id/recibir')
   @HttpCode(200)
-  @Roles(Rol.ADMIN, Rol.GERENTE)
+  @Roles(Rol.GERENTE_GENERAL, Rol.GERENTE)
   @Auditar({ entidad: 'Traslado', modelo: 'traslado', accion: 'RECIBIR' })
   @ApiOperation({ summary: 'Recibir con cantidades reales; la diferencia queda como ajuste' })
   recibir(
@@ -73,7 +73,7 @@ export class TrasladosController {
 
   @Post(':id/cancelar')
   @HttpCode(200)
-  @Roles(Rol.ADMIN, Rol.GERENTE)
+  @Roles(Rol.GERENTE_GENERAL, Rol.GERENTE)
   @Auditar({ entidad: 'Traslado', modelo: 'traslado', accion: 'CANCELAR' })
   @ApiOperation({ summary: 'Cancelar antes de despachar, con motivo' })
   cancelar(

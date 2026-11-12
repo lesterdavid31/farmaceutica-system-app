@@ -169,7 +169,7 @@ function FormularioProducto({
 }
 
 export function Productos() {
-  const puedeEditar = useUsuario().rol === 'ADMIN';
+  const puedeEditar = useUsuario().rol === 'GERENTE_GENERAL';
   const listado = useListado<Producto, { q: string; categoriaId: string; activo: string }>(
     'productos',
     { q: '', categoriaId: '', activo: 'true' },

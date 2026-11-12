@@ -32,6 +32,8 @@ import { useCatalogo, useListado, useMutacion } from '@/lib/consultas';
 import { ROLES, ROLES_GLOBALES, type Rol, type Ubicacion, type Usuario } from '@/lib/dominio';
 
 const ROLES_LISTA = Object.keys(ROLES) as Rol[];
+/** Las cuentas de sucursal solo nacen de una solicitud aprobada (Solicitudes de cuenta). */
+const ROLES_POR_SOLICITUD: Rol[] = ['GERENTE', 'CAJERO'];
 const PASSWORD = /(?=.*[A-Za-z])(?=.*\d)/;
 const MENSAJE_PASSWORD = 'Use al menos 8 caracteres, con letras y números';
 
@@ -77,7 +79,7 @@ function FormularioUsuario({
     defaultValues: {
       nombre: usuario?.nombre ?? '',
       email: usuario?.email ?? '',
-      rol: usuario?.rol ?? 'CAJERO',
+      rol: usuario?.rol ?? 'OPERADOR_CALL_CENTER',
       ubicacionId: usuario?.ubicacionId ?? '',
       password: '',
       activo: usuario?.activo ?? true,
@@ -127,13 +129,20 @@ function FormularioUsuario({
         >
           <Input id="email" type="email" aria-invalid={!!errors.email} {...register('email')} />
         </Campo>
-        <Campo id="rol" etiqueta="Rol" error={errors.rol?.message}>
+        <Campo
+          id="rol"
+          etiqueta="Rol"
+          ayuda="Las cuentas de gerente y cajero se crean desde Solicitudes de cuenta."
+          error={errors.rol?.message}
+        >
           <Select id="rol" {...register('rol')}>
-            {ROLES_LISTA.map((r) => (
-              <option key={r} value={r}>
-                {ROLES[r]}
-              </option>
-            ))}
+            {ROLES_LISTA.filter((r) => !ROLES_POR_SOLICITUD.includes(r) || r === usuario?.rol).map(
+              (r) => (
+                <option key={r} value={r}>
+                  {ROLES[r]}
+                </option>
+              ),
+            )}
           </Select>
         </Campo>
         <Campo

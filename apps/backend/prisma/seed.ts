@@ -5,7 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { hash } from 'bcryptjs';
 import { config } from 'dotenv';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { Rol } from '../src/generated/prisma/enums';
+import { EstadoSolicitudUsuario, Rol } from '../src/generated/prisma/enums';
 import { PARAMETROS } from '../src/configuracion/parametros';
 import {
   CATEGORIAS,
@@ -144,6 +144,62 @@ async function configuracion() {
   }
 }
 
+/**
+ * Solicitudes de cuenta en cada estado: una pendiente de aprobar, una aprobada esperando a TI y
+ * una rechazada. Se omite si ya hay solicitudes.
+ */
+async function sembrarSolicitudes() {
+  if ((await prisma.solicitudUsuario.count()) > 0) {
+    return;
+  }
+  const id = async (email: string) =>
+    (await prisma.usuario.findUniqueOrThrow({ where: { email } })).id;
+  const ubicacion = async (codigo: string) =>
+    (await prisma.ubicacion.findUniqueOrThrow({ where: { codigo } })).id;
+  const general = await id('gerente.general@farmacia.gt');
+  const hace = (horas: number) => new Date(Date.now() - horas * 3_600_000);
+  await prisma.solicitudUsuario.create({
+    data: {
+      nombre: 'Andrea Sofía Cifuentes',
+      email: 'cajero2.xela@farmacia.gt',
+      rol: Rol.CAJERO,
+      ubicacionId: await ubicacion('CC-XELA'),
+      justificacion: 'Segundo cajero para el turno de la tarde',
+      solicitadoPorId: await id('gerente.xela@farmacia.gt'),
+      createdAt: hace(3),
+    },
+  });
+  await prisma.solicitudUsuario.create({
+    data: {
+      nombre: 'Julio César Pop',
+      email: 'cajero2.coban@farmacia.gt',
+      rol: Rol.CAJERO,
+      ubicacionId: await ubicacion('CC-COBAN'),
+      justificacion: 'Cubre las vacaciones del cajero titular',
+      estado: EstadoSolicitudUsuario.APROBADA,
+      solicitadoPorId: await id('gerente.coban@farmacia.gt'),
+      revisadoPorId: general,
+      fechaRevision: hace(20),
+      createdAt: hace(26),
+    },
+  });
+  await prisma.solicitudUsuario.create({
+    data: {
+      nombre: 'Kevin Josué Ramírez',
+      email: 'cajero3.peten@farmacia.gt',
+      rol: Rol.CAJERO,
+      ubicacionId: await ubicacion('CC-PETEN'),
+      justificacion: 'Tercer cajero para fines de semana',
+      estado: EstadoSolicitudUsuario.RECHAZADA,
+      solicitadoPorId: await id('gerente.peten@farmacia.gt'),
+      revisadoPorId: general,
+      fechaRevision: hace(44),
+      motivoRechazo: 'La venta de fin de semana no justifica un tercer cajero',
+      createdAt: hace(50),
+    },
+  });
+}
+
 async function main() {
   const inicio = Date.now();
   const municipios = await geografia();
@@ -160,6 +216,7 @@ async function main() {
   await sembrarVentas(prisma);
   await sembrarPedidos(prisma);
   await sembrarPlanillaYActivos(prisma);
+  await sembrarSolicitudes();
 
   const conteo = {
     departamentos: await prisma.departamento.count(),

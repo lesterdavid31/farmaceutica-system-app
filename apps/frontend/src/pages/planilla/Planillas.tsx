@@ -92,7 +92,7 @@ function FormularioGenerar({
         <Campo id="ubicacionPlanilla" etiqueta="Ubicación" className="sm:col-span-2">
           <Select
             id="ubicacionPlanilla"
-            disabled={usuario.rol !== 'ADMIN'}
+            disabled={usuario.rol !== 'GERENTE_GENERAL'}
             value={ubicacionId}
             onChange={(e) => setUbicacionId(e.target.value)}
           >
@@ -142,7 +142,7 @@ function FormularioGenerar({
 export function Planillas() {
   const navegar = useNavigate();
   const usuario = useUsuario();
-  const puedeEditar = tieneRol(usuario, ['ADMIN', 'GERENTE']);
+  const puedeEditar = tieneRol(usuario, ['GERENTE_GENERAL', 'GERENTE']);
   const { ubicacionId } = useFiltroUbicacion();
   const [generando, setGenerando] = useState(false);
   const listado = useListado<PlanillaResumen, { anio: string; estado: string }>(
@@ -366,7 +366,7 @@ function FormularioLinea({
 export function DetallePlanilla() {
   const { id } = useParams();
   const navegar = useNavigate();
-  const puedeEditar = tieneRol(useUsuario(), ['ADMIN', 'GERENTE']);
+  const puedeEditar = tieneRol(useUsuario(), ['GERENTE_GENERAL', 'GERENTE']);
   const [linea, setLinea] = useState<LineaPlanilla | null>(null);
   const [confirmar, setConfirmar] = useState<'cerrar' | 'eliminar' | null>(null);
   const consulta = useQuery({

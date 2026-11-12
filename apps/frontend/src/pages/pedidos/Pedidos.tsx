@@ -53,7 +53,7 @@ export function Pedidos() {
   const usuario = useUsuario();
   const global = esGlobal(usuario);
   const { ubicacionId } = useFiltroUbicacion();
-  const puedeCrear = tieneRol(usuario, ['ADMIN', 'OPERADOR_CALL_CENTER']);
+  const puedeCrear = tieneRol(usuario, ['GERENTE_GENERAL', 'OPERADOR_CALL_CENTER']);
   const sucursal = tieneRol(usuario, ['GERENTE', 'CAJERO']);
   const listado = useListado<
     PedidoResumen,

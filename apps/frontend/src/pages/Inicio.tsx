@@ -6,7 +6,7 @@ import { navegacionPara } from '@/layout/navegacion';
 
 /**
  * Pantalla de inicio del cajero y del operador: su alcance y accesos directos a sus módulos.
- * ADMIN, AUDITOR y GERENTE ven en su lugar el dashboard (RF-32, RF-37).
+ * GERENTE_GENERAL, AUDITOR y GERENTE ven en su lugar el dashboard (RF-32, RF-37).
  */
 export function Inicio() {
   const usuario = useUsuario();

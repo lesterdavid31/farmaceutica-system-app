@@ -95,7 +95,7 @@ describe('Traslados (e2e)', () => {
         cantidad,
         tipo: TipoMovimientoInventario.AJUSTE,
         motivo: 'Prueba',
-        usuarioId: usuarios.admin.id,
+        usuarioId: usuarios['gerente.general'].id,
       });
     }
     const existencia = async (ubicacionId: string, loteId: string) =>
@@ -157,7 +157,7 @@ describe('Traslados (e2e)', () => {
     zacapaId = await ubicacion('SG-ZACAPA');
     categoriaId = (await prisma.categoria.findFirstOrThrow()).id;
 
-    const cuentas = ['admin', 'auditor', 'gerente.bodega', 'gerente.xela', 'cajero.xela'];
+    const cuentas = ['gerente.general', 'auditor', 'gerente.bodega', 'gerente.xela', 'cajero.xela'];
     for (const cuenta of cuentas) {
       const u = await prisma.usuario.findUniqueOrThrow({
         where: { email: `${cuenta}@farmacia.gt` },
@@ -258,8 +258,8 @@ describe('Traslados (e2e)', () => {
       await revertida(async (tx) => {
         const e = await escenario(tx);
         const id = await e.solicitar(25);
-        await servicio.aprobarEn(tx, id, usuarios.admin);
-        await servicio.despacharEn(tx, id, usuarios.admin);
+        await servicio.aprobarEn(tx, id, usuarios['gerente.general']);
+        await servicio.despacharEn(tx, id, usuarios['gerente.general']);
         const [pronto, lejano] = await e.detalles(id);
 
         await expect(
@@ -319,23 +319,23 @@ describe('Traslados (e2e)', () => {
       await revertida(async (tx) => {
         const e = await escenario(tx);
         const id = await e.solicitar(5);
-        const admin = usuarios.admin;
-        await expect(servicio.despacharEn(tx, id, admin)).rejects.toThrow(
+        const general = usuarios['gerente.general'];
+        await expect(servicio.despacharEn(tx, id, general)).rejects.toThrow(
           'solo se despacha un traslado aprobado',
         );
         await expect(
           servicio.recibirEn(tx, id, { detalles: [] }, usuarios['gerente.xela']),
         ).rejects.toThrow('solo se recibe un traslado en tránsito');
-        await servicio.aprobarEn(tx, id, admin);
-        await expect(servicio.aprobarEn(tx, id, admin)).rejects.toThrow(
+        await servicio.aprobarEn(tx, id, general);
+        await expect(servicio.aprobarEn(tx, id, general)).rejects.toThrow(
           'solo se aprueba un traslado solicitado',
         );
-        await servicio.despacharEn(tx, id, admin);
-        await expect(servicio.despacharEn(tx, id, admin)).rejects.toThrow(
+        await servicio.despacharEn(tx, id, general);
+        await expect(servicio.despacharEn(tx, id, general)).rejects.toThrow(
           'solo se despacha un traslado aprobado',
         );
         await expect(
-          servicio.cancelarEn(tx, id, { motivo: 'Ya no se necesita' }, admin),
+          servicio.cancelarEn(tx, id, { motivo: 'Ya no se necesita' }, general),
         ).rejects.toThrow('solo se cancela un traslado que aún no se ha despachado');
         // Solo hubo un despacho.
         expect(await e.movimientos(id)).toHaveLength(1);
@@ -360,7 +360,7 @@ describe('Traslados (e2e)', () => {
           canceladoPorId: usuarios['gerente.xela'].id,
         });
         expect(await e.movimientos(id)).toHaveLength(0);
-        await expect(servicio.despacharEn(tx, id, usuarios.admin)).rejects.toThrow(
+        await expect(servicio.despacharEn(tx, id, usuarios['gerente.general'])).rejects.toThrow(
           'está cancelado',
         );
       });
@@ -389,17 +389,17 @@ describe('Traslados (e2e)', () => {
     it('rechaza destino bodega, origen igual al destino, productos repetidos y pedido faltante', async () => {
       await revertida(async (tx) => {
         const e = await escenario(tx);
-        const admin = usuarios.admin;
+        const general = usuarios['gerente.general'];
         const base = {
           origenId: xelaId,
           destinoId: zacapaId,
           motivo: MotivoTraslado.REABASTECIMIENTO,
           detalles: [{ productoId: e.producto.id, cantidad: 1 }],
         };
-        await expect(servicio.crearEn(tx, { ...base, destinoId: bodegaId }, admin)).rejects.toThrow(
-          'La bodega central no recibe traslados',
-        );
-        await expect(servicio.crearEn(tx, { ...base, destinoId: xelaId }, admin)).rejects.toThrow(
+        await expect(
+          servicio.crearEn(tx, { ...base, destinoId: bodegaId }, general),
+        ).rejects.toThrow('La bodega central no recibe traslados');
+        await expect(servicio.crearEn(tx, { ...base, destinoId: xelaId }, general)).rejects.toThrow(
           'deben ser ubicaciones distintas',
         );
         await expect(
@@ -412,11 +412,11 @@ describe('Traslados (e2e)', () => {
                 { productoId: e.producto.id, cantidad: 2 },
               ],
             },
-            admin,
+            general,
           ),
         ).rejects.toThrow('Revise los productos');
         await expect(
-          servicio.crearEn(tx, { ...base, motivo: MotivoTraslado.PEDIDO_CLIENTE }, admin),
+          servicio.crearEn(tx, { ...base, motivo: MotivoTraslado.PEDIDO_CLIENTE }, general),
         ).rejects.toThrow('debe indicar el pedido');
         // Un gerente no solicita traslados entre otras dos ubicaciones.
         await expect(
@@ -527,9 +527,16 @@ describe('Traslados (e2e)', () => {
 
     it('responde 404 para un traslado que no existe y 400 si falta el motivo de cancelación', async () => {
       const id = randomUUID();
-      await http().get(`${API}/traslados/${id}`).set(como('admin')).expect(404);
-      await http().post(`${API}/traslados/${id}/despachar`).set(como('admin')).expect(404);
-      await http().post(`${API}/traslados/${id}/cancelar`).set(como('admin')).send({}).expect(400);
+      await http().get(`${API}/traslados/${id}`).set(como('gerente.general')).expect(404);
+      await http()
+        .post(`${API}/traslados/${id}/despachar`)
+        .set(como('gerente.general'))
+        .expect(404);
+      await http()
+        .post(`${API}/traslados/${id}/cancelar`)
+        .set(como('gerente.general'))
+        .send({})
+        .expect(400);
     });
   });
 });

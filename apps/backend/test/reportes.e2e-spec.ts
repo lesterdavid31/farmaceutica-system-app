@@ -52,7 +52,13 @@ describe('Dashboards y reportes de auditoría (e2e)', () => {
     configurarApp(app);
     await app.init();
     prisma = app.get(PrismaService);
-    for (const cuenta of ['admin', 'auditor', 'gerente.escuintla', 'cajero.xela', 'operador']) {
+    for (const cuenta of [
+      'gerente.general',
+      'auditor',
+      'gerente.escuintla',
+      'cajero.xela',
+      'operador',
+    ]) {
       const res = await http()
         .post(`${API}/auth/login`)
         .send({ email: `${cuenta}@farmacia.gt`, password: PASSWORD });
@@ -343,7 +349,7 @@ describe('Dashboards y reportes de auditoría (e2e)', () => {
         await http().get(`${API}/reportes/${ruta}`).set(como('cajero.xela')).expect(403);
         await http().get(`${API}/reportes/${ruta}`).set(como('operador')).expect(403);
       }
-      await http().get(`${API}/reportes/dashboard`).set(como('admin')).expect(200);
+      await http().get(`${API}/reportes/dashboard`).set(como('gerente.general')).expect(200);
     });
   });
 });

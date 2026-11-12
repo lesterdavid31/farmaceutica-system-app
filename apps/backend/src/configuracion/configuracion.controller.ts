@@ -33,7 +33,7 @@ export class ConfiguracionController {
   }
 
   @Put()
-  @Roles(Rol.ADMIN)
+  @Roles(Rol.GERENTE_GENERAL)
   @SinBitacora() // El servicio registra los valores antes y después en la misma transacción.
   @ApiBody({ type: ActualizarConfiguracionDto })
   @ApiOperation({ summary: 'Actualizar uno o varios parámetros (RF-03)' })

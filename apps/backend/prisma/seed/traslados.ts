@@ -86,7 +86,7 @@ export async function sembrarTraslados(prisma: PrismaClient) {
     where: { activo: true, sku: { notIn: EXCLUSIVOS } },
     orderBy: { sku: 'asc' },
   });
-  const admin = await usuario('admin');
+  const gerenteGeneral = await usuario('gerente.general');
   const usados = new Set<string>();
 
   for (const plan of PLANES) {
@@ -127,11 +127,11 @@ export async function sembrarTraslados(prisma: PrismaClient) {
     if (plan.hasta === 'SOLICITADO') {
       continue;
     }
-    await servicio.aprobar(traslado.id, admin);
+    await servicio.aprobar(traslado.id, gerenteGeneral);
     if (plan.hasta === 'APROBADO') {
       continue;
     }
-    const despachado = await servicio.despachar(traslado.id, admin);
+    const despachado = await servicio.despachar(traslado.id, gerenteGeneral);
     if (plan.hasta === 'EN_TRANSITO') {
       continue;
     }

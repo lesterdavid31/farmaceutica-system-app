@@ -12,10 +12,10 @@ import {
 } from './clientes.dto';
 import { ClientesService } from './clientes.service';
 
-/** Gestionan clientes el operador y el administrador; el auditor solo consulta. */
+/** Gestionan clientes el operador y el gerente general; el auditor solo consulta. */
 @ApiTags('Clientes')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER)
 @Controller('clientes')
 export class ClientesController {
   constructor(private readonly clientes: ClientesService) {}
@@ -33,7 +33,7 @@ export class ClientesController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN, Rol.OPERADOR_CALL_CENTER)
+  @Roles(Rol.GERENTE_GENERAL, Rol.OPERADOR_CALL_CENTER)
   @Auditar({ entidad: 'Cliente' })
   @ApiOperation({ summary: 'Registrar cliente (RF-20)' })
   crear(@Body() dto: CrearClienteDto) {
@@ -41,7 +41,7 @@ export class ClientesController {
   }
 
   @Patch(':id')
-  @Roles(Rol.ADMIN, Rol.OPERADOR_CALL_CENTER)
+  @Roles(Rol.GERENTE_GENERAL, Rol.OPERADOR_CALL_CENTER)
   @Auditar({ entidad: 'Cliente', modelo: 'cliente' })
   @ApiOperation({ summary: 'Actualizar o desactivar cliente' })
   actualizar(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ActualizarClienteDto) {
@@ -49,7 +49,7 @@ export class ClientesController {
   }
 
   @Post(':id/direcciones')
-  @Roles(Rol.ADMIN, Rol.OPERADOR_CALL_CENTER)
+  @Roles(Rol.GERENTE_GENERAL, Rol.OPERADOR_CALL_CENTER)
   @Auditar({ entidad: 'DireccionCliente', accion: 'CREAR' })
   @ApiOperation({ summary: 'Agregar dirección de entrega con coordenadas' })
   agregarDireccion(@Param('id', ParseUUIDPipe) id: string, @Body() dto: DireccionDto) {
@@ -57,7 +57,7 @@ export class ClientesController {
   }
 
   @Patch(':id/direcciones/:direccionId')
-  @Roles(Rol.ADMIN, Rol.OPERADOR_CALL_CENTER)
+  @Roles(Rol.GERENTE_GENERAL, Rol.OPERADOR_CALL_CENTER)
   @Auditar({ entidad: 'DireccionCliente', parametroId: 'direccionId' })
   @ApiOperation({ summary: 'Actualizar o desactivar dirección' })
   actualizarDireccion(

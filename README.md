@@ -67,7 +67,8 @@ Todos usan la contraseña **`Farmacia2026!`**.
 
 | Correo                          | Rol                     | Ubicación                       |
 | ------------------------------- | ----------------------- | ------------------------------- |
-| `admin@farmacia.gt`             | Administrador           | Todas                           |
+| `admin@farmacia.gt`             | Administrador de TI     | Todas                           |
+| `gerente.general@farmacia.gt`   | Gerente general         | Todas                           |
 | `auditor@farmacia.gt`           | Auditor (solo lectura)  | Todas                           |
 | `operador@farmacia.gt`          | Operador de call center | Todas (solo lectura de stock)   |
 | `gerente.bodega@farmacia.gt`    | Gerente                 | Bodega Central                  |
@@ -94,26 +95,30 @@ Todos usan la contraseña **`Farmacia2026!`**.
 
 | Parte                              | Contenido                                                                                                                                                                                                                                                                                                                                                                        |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Catálogo                           | 22 departamentos, 9 ubicaciones con coordenadas reales, 20 usuarios, 45 productos genéricos, 4 proveedores y los parámetros de configuración                                                                                                                                                                                                                                     |
+| Catálogo                           | 22 departamentos, 9 ubicaciones con coordenadas reales, 21 usuarios, 45 productos genéricos, 4 proveedores y los parámetros de configuración                                                                                                                                                                                                                                     |
 | Inventario inicial (hace ~4 meses) | 3 compras de la bodega con lotes que hoy están vencidos, por vencer y con vencimiento lejano; inventario de apertura de cada sucursal (a cada una le faltan algunos productos, y 3 solo existen en la bodega y en Xela) y stock mínimo                                                                                                                                           |
 | Historia (hace 92 días a ayer)     | Compras quincenales de la bodega, traslados quincenales a cada sucursal (algunos con faltantes y algunos cancelados), un turno de caja diario por sucursal con unas 10,000 ventas, gastos, retiros, depósitos, anulaciones y arqueos (uno de cada diez con diferencia), unos 340 pedidos del call center (algunos entregados tarde y otros cancelados) y bajas de lotes vencidos |
 | Hoy                                | Un traslado en cada estado, turnos abiertos y cerrados, y pedidos pendientes, atrasados, en preparación y esperando un traslado (detalle en cada sección)                                                                                                                                                                                                                        |
 | Planilla y activos                 | 34 empleados, planillas cerradas de agosto y septiembre de 2026 y 30 activos fijos                                                                                                                                                                                                                                                                                               |
+| Solicitudes de cuenta              | Una pendiente de aprobar (Xela), una aprobada esperando a TI (Cobán) y una rechazada con motivo (Petén)                                                                                                                                                                                                                                                                          |
 
 La historia se simula en memoria con las mismas reglas y funciones de la API (FEFO sin vencidos, arqueo, ciclo de traslados y de pedidos) y se guarda en bloque en una sola transacción; usar los servicios uno por uno para miles de ventas haría decenas de miles de viajes a la base. Las fechas son relativas al día en que se ejecuta el seed. Después de cargarla se verificó que el saldo del kardex nunca queda negativo, que cada existencia es igual a la suma de sus movimientos y que cada arqueo cuadra con los movimientos del turno.
 
 ### Recorrido sugerido
 
-1. **`admin`**: dashboard ejecutivo con las alertas del día; filtrar por una ubicación con el selector.
-2. **`auditor`**: _Auditoría → Flujo de efectivo_ desde el 01/07 (sobrantes y faltantes por sucursal) y exportar a CSV; _Movimiento de medicamentos_ y _Bitácora_.
-3. **`cajero.xela`**: abrir caja, vender en el punto de venta (los lotes salen por FEFO) y cerrar con arqueo.
-4. **`operador`**: nuevo pedido para un cliente (teléfono `55210004`) con _Claritromicina 500 mg_: solo hay en la bodega y en Xela, así que el sistema propone un traslado.
-5. **`gerente.coban`**: dashboard de sucursal, el pedido atrasado en camino y la anulación de una venta del turno abierto.
-6. **`gerente.bodega`**: aprobar y despachar el traslado solicitado; registrar una compra.
+1. **`gerente.general`**: dashboard ejecutivo con las alertas del día; filtrar por una ubicación con el selector. En _Solicitudes de cuenta_, aprobar la solicitud pendiente de Xela.
+1. **`admin`** (TI): en _Solicitudes de cuenta_, crear la cuenta de la solicitud aprobada de Cobán.
+1. **`auditor`**: _Auditoría → Flujo de efectivo_ desde el 01/07 (sobrantes y faltantes por sucursal) y exportar a CSV; _Movimiento de medicamentos_ y _Bitácora_.
+1. **`cajero.xela`**: abrir caja, vender en el punto de venta (los lotes salen por FEFO) y cerrar con arqueo.
+1. **`operador`**: nuevo pedido para un cliente (teléfono `55210004`) con _Claritromicina 500 mg_: solo hay en la bodega y en Xela, así que el sistema propone un traslado.
+1. **`gerente.coban`**: dashboard de sucursal, el pedido atrasado en camino y la anulación de una venta del turno abierto.
+1. **`gerente.bodega`**: aprobar y despachar el traslado solicitado; registrar una compra.
 
 ## Seguridad y auditoría
 
 - Los permisos se aplican en el backend con guards globales: JWT → rol → solo lectura del auditor. GERENTE y CAJERO quedan limitados a su ubicación. El frontend solo oculta opciones.
+- **Separación de funciones:** el administrador de TI (`ADMIN`) solo gestiona usuarios, ubicaciones, el estado del sistema y la bitácora, y no ve datos del negocio. El gerente general (`GERENTE_GENERAL`) opera el negocio en todas las ubicaciones, incluido el catálogo y los parámetros, pero no crea usuarios.
+- **Cuentas de sucursal:** el gerente pide la cuenta de un gerente o cajero en _Solicitudes de cuenta_ → el gerente general la aprueba o rechaza con motivo (las suyas nacen aprobadas) → TI la crea con una contraseña inicial → el gerente la vincula a su empleado en _Empleados_. TI no puede crear cuentas de gerente o cajero por fuera de este flujo. La base de datos impide dos solicitudes en curso con el mismo correo.
 - Cada petición vuelve a consultar al usuario: si se desactiva o cambia de rol, aplica de inmediato aunque su token siga vigente.
 - Login limitado a 5 intentos por minuto por IP (en memoria de cada instancia).
 - Toda escritura exitosa queda en la bitácora con usuario, acción, entidad, datos antes y después, fecha e IP; también los inicios de sesión y los intentos fallidos. Nunca se guardan contraseñas.
@@ -133,7 +138,7 @@ La historia se simula en memoria con las mismas reglas y funciones de la API (FE
 ## Traslados
 
 - Ciclo de vida: `SOLICITADO → APROBADO → EN_TRANSITO → RECIBIDO`, o `CANCELADO` antes de despachar. Cada cambio guarda quién lo hizo y cuándo; el detalle muestra ese historial.
-- **Solicita** el administrador o un gerente, si el traslado sale de su ubicación o llega a ella. **Aprueba y despacha** el gerente de origen (o el administrador); **recibe** el gerente de destino; **cancela** cualquiera de los dos gerentes. La bodega central no recibe traslados.
+- **Solicita** el gerente general o un gerente, si el traslado sale de su ubicación o llega a ella. **Aprueba y despacha** el gerente de origen (o el gerente general); **recibe** el gerente de destino; **cancela** cualquiera de los dos gerentes. La bodega central no recibe traslados.
 - Al **despachar** se descuenta del origen por FEFO, sin lotes vencidos, con un movimiento `TRASLADO_SALIDA` por lote; un producto puede repartirse en varios lotes. Si falta existencia vigente, no se despacha nada y se informan todos los faltantes.
 - Al **recibir** se ingresan en el destino los mismos lotes como `TRASLADO_ENTRADA`. Si llegó menos, el faltante se registra después como `AJUSTE` con el motivo, así el kardex muestra lo enviado y la diferencia por separado. No se acepta recibir más de lo despachado.
 - Desde **Alertas → Bajo stock mínimo** se puede iniciar la solicitud con el producto y la cantidad sugerida.
@@ -158,7 +163,7 @@ La historia se simula en memoria con las mismas reglas y funciones de la API (FE
 - **Crear pedido:** el servidor vuelve a calcular el plan de la sucursal elegida; si le falta producto, crea los traslados `PEDIDO_CLIENTE` en la misma transacción. La fecha de compromiso no puede ser anterior al tiempo estimado; por defecto es ahora + tiempo estimado, redondeada a 5 minutos.
 - **Estados:** `PENDIENTE → EN_PREPARACION → ASIGNADO → EN_CAMINO → ENTREGADO`. Al preparar se descuenta el inventario por FEFO y se genera la venta `CALL_CENTER`; si el pedido espera un traslado, primero hay que recibirlo. El gerente o el cajero de la sucursal asigna repartidor (empleados sin acceso al sistema) y avanza los estados. Cada cambio queda en el historial inmutable.
 - **Cobro (decisión del equipo):** contra entrega (efectivo) o tarjeta con datáfono, ambos al entregar. Entra a la caja del cajero que confirma; si confirma el gerente, al turno abierto más antiguo de la sucursal. Sin caja abierta no se confirma la entrega. Contra entrega cuenta como efectivo en el arqueo.
-- **Cancelación (decisión del equipo):** el operador, el gerente de la sucursal o el administrador, hasta `EN_CAMINO`. Si ya se descontó inventario, la venta se anula y los lotes regresan. Los traslados del pedido que no han salido se cancelan; los que están en tránsito llegan como reabastecimiento.
+- **Cancelación (decisión del equipo):** el operador, el gerente de la sucursal o el gerente general, hasta `EN_CAMINO`. Si ya se descontó inventario, la venta se anula y los lotes regresan. Los traslados del pedido que no han salido se cancelan; los que están en tránsito llegan como reabastecimiento.
 - **Atrasos:** un pedido sin entregar después de su fecha de compromiso aparece como atrasado. Se calcula al consultar, sin tareas programadas.
 - **Seed:** 2 repartidores por sucursal, 8 clientes y 7 pedidos:
   - Cobán: uno entregado y cobrado en la caja abierta, y otro en camino y atrasado.
@@ -169,7 +174,7 @@ La historia se simula en memoria con las mismas reglas y funciones de la API (FE
 
 ## Planilla
 
-- **Empleados:** el gerente gestiona los de su sucursal y el administrador, los de todas; solo el administrador los cambia de ubicación. Se desactivan, no se borran. Pueden vincularse a su usuario del sistema; los repartidores no tienen usuario.
+- **Empleados:** el gerente gestiona los de su sucursal y el gerente general, los de todas; solo el gerente general los cambia de ubicación. Se desactivan, no se borran. Se vinculan a su usuario del sistema con el campo _Usuario del sistema_ (cuentas activas de su ubicación sin otro empleado); los repartidores no tienen usuario.
 - **Generar:** una planilla mensual por ubicación con los empleados activos que ingresaron antes de terminar el mes. La bonificación incentivo y el porcentaje de IGSS salen de la configuración (Q250 y 4.83 % por defecto). No se generan meses futuros.
 - **Cálculo (RN-22):**
   - IGSS = salario base × porcentaje, redondeado al centavo. La bonificación no cotiza.
@@ -189,12 +194,12 @@ La historia se simula en memoria con las mismas reglas y funciones de la API (FE
 - **Categorías (RN-25):** la vida útil por defecto se puede editar y se usa al registrar un activo sin vida útil propia. Cambiarla no altera los activos ya registrados.
 - **Traslados (RN-26):** la ubicación de un activo solo cambia con un traslado con motivo, que queda en un historial inmutable. Los activos dados de baja no se trasladan.
 - **Reporte:** valor en libros a cualquier fecha, por ubicación y por categoría, con la depreciación acumulada. Cada activo aparece en la ubicación que tenía en esa fecha según su historial. Se excluyen los adquiridos después de la fecha y los dados de baja.
-- **Permisos:** solo el administrador registra, edita, traslada y da de baja; el auditor consulta todo y el gerente, los de su sucursal.
+- **Permisos:** solo el gerente general registra, edita, traslada y da de baja; el auditor consulta todo y el gerente, los de su sucursal.
 - **Seed:** el gerente y el cajero de cada sucursal como empleados, un bodeguero, planillas cerradas de agosto y septiembre de 2026 en las 9 ubicaciones, 30 activos y un traslado de un equipo de cómputo de la bodega a Zacapa.
 
 ## Dashboards y auditoría
 
-- **Dashboard ejecutivo** (ADMIN y AUDITOR, filtrable con el selector de ubicación) y **de sucursal** (GERENTE, su ubicación):
+- **Dashboard ejecutivo** (GERENTE_GENERAL y AUDITOR, filtrable con el selector de ubicación) y **de sucursal** (GERENTE, su ubicación):
   - primero "Requiere atención hoy": pedidos atrasados, lotes vencidos y por vencer, stock bajo y cajas con diferencia en los últimos 7 días, con enlaces;
   - luego los indicadores: ventas del día, mes y año, inventario a costo, valor de los activos y gasto en planilla del mes (o del último mes cerrado);
   - al final, las gráficas de ventas por día (30 días) e ingresos del mes por sucursal y método de pago.
@@ -230,4 +235,5 @@ Versiones estables fijadas al iniciar el proyecto (9 de octubre de 2026):
 - **Un solo proyecto de Vercel con Services** en lugar de dos proyectos separados: frontend y backend comparten dominio. Decisión del equipo.
 - **Decisiones del call center** (definidas por el equipo): los pedidos se cobran al entregar y el cobro entra a una caja abierta de la sucursal; se cancelan hasta `EN_CAMINO`; las coordenadas se marcan en un mapa de OpenStreetMap.
 - **Decisiones de caja** (la especificación no las fijaba; las definió el equipo): un depósito es efectivo que entra a la gaveta; una venta solo se anula mientras su turno sigue abierto; solo el cajero abre caja y vende.
+- **Seis roles en lugar de cinco** (decisión del equipo, 12 de noviembre de 2026): el `ADMIN` de la especificación se divide en **administrador de TI** (configuración del sistema) y **gerente general** (operación del negocio), por separación de funciones. Las cuentas de gerente y cajero se piden y aprueban dentro del sistema.
 - **Entrypoint del backend** `apps/backend/server.js`, que carga la salida de `tsc` en lugar de un handler manual en `api/`: el compilador de Vercel no emite los metadatos de decoradores que NestJS necesita (detalles en `docs/despliegue.md`).

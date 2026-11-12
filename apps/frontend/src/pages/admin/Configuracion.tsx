@@ -92,7 +92,7 @@ function FormularioConfiguracion({
 }
 
 export function Configuracion() {
-  const soloLectura = useUsuario().rol !== 'ADMIN';
+  const soloLectura = useUsuario().rol !== 'GERENTE_GENERAL';
   const consulta = useQuery({
     queryKey: ['configuracion'],
     queryFn: () => api.get<ParametroConfiguracion[]>('/configuracion'),
@@ -101,7 +101,7 @@ export function Configuracion() {
   return (
     <Pagina>
       <EncabezadoPagina
-        titulo="Configuración"
+        titulo="Parámetros del negocio"
         descripcion="Parámetros que usan las reglas de negocio del sistema."
       />
       <Panel className="max-w-4xl">

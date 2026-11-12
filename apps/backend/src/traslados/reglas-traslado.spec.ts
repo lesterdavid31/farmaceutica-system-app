@@ -15,15 +15,17 @@ const traslado = (estado: EstadoTraslado) => ({
   origenId: ORIGEN,
   destinoId: DESTINO,
 });
-const admin = { rol: Rol.ADMIN, ubicacionId: null };
+const gerenteGeneral = { rol: Rol.GERENTE_GENERAL, ubicacionId: null };
+const ti = { rol: Rol.ADMIN, ubicacionId: null };
 const gerenteOrigen = { rol: Rol.GERENTE, ubicacionId: ORIGEN };
 const gerenteDestino = { rol: Rol.GERENTE, ubicacionId: DESTINO };
 const gerenteOtro = { rol: Rol.GERENTE, ubicacionId: 'otra' };
 
 describe('puedeOperar', () => {
-  it('el administrador puede todo', () => {
+  it('el gerente general puede todo; el administrador de TI, nada', () => {
     for (const accion of ['aprobar', 'despachar', 'recibir', 'cancelar'] as const) {
-      expect(puedeOperar(accion, admin, traslado(EstadoTraslado.SOLICITADO))).toBe(true);
+      expect(puedeOperar(accion, gerenteGeneral, traslado(EstadoTraslado.SOLICITADO))).toBe(true);
+      expect(puedeOperar(accion, ti, traslado(EstadoTraslado.SOLICITADO))).toBe(false);
     }
   });
 
@@ -63,8 +65,8 @@ describe('accionesDisponibles: ciclo de vida (RN-08)', () => {
     [EstadoTraslado.EN_TRANSITO, ['recibir']],
     [EstadoTraslado.RECIBIDO, []],
     [EstadoTraslado.CANCELADO, []],
-  ])('para el administrador, %s permite %j', (estado, esperadas) => {
-    expect(accionesDisponibles(traslado(estado), admin)).toEqual(esperadas);
+  ])('para el gerente general, %s permite %j', (estado, esperadas) => {
+    expect(accionesDisponibles(traslado(estado), gerenteGeneral)).toEqual(esperadas);
   });
 
   it('filtra por la ubicación del gerente', () => {
@@ -80,21 +82,23 @@ describe('verificarAccion', () => {
     expect(() =>
       verificarAccion('despachar', traslado(EstadoTraslado.APROBADO), gerenteDestino),
     ).toThrow(ForbiddenException);
-    expect(() => verificarAccion('cancelar', traslado(EstadoTraslado.EN_TRANSITO), admin)).toThrow(
+    expect(() =>
+      verificarAccion('cancelar', traslado(EstadoTraslado.EN_TRANSITO), gerenteGeneral),
+    ).toThrow(
       'El traslado #7 está en tránsito: solo se cancela un traslado que aún no se ha despachado',
     );
-    expect(() => verificarAccion('despachar', traslado(EstadoTraslado.SOLICITADO), admin)).toThrow(
-      UnprocessableEntityException,
-    );
+    expect(() =>
+      verificarAccion('despachar', traslado(EstadoTraslado.SOLICITADO), gerenteGeneral),
+    ).toThrow(UnprocessableEntityException);
   });
 
   it('no permite despachar dos veces ni recibir dos veces', () => {
-    expect(() => verificarAccion('despachar', traslado(EstadoTraslado.EN_TRANSITO), admin)).toThrow(
-      UnprocessableEntityException,
-    );
-    expect(() => verificarAccion('recibir', traslado(EstadoTraslado.RECIBIDO), admin)).toThrow(
-      UnprocessableEntityException,
-    );
+    expect(() =>
+      verificarAccion('despachar', traslado(EstadoTraslado.EN_TRANSITO), gerenteGeneral),
+    ).toThrow(UnprocessableEntityException);
+    expect(() =>
+      verificarAccion('recibir', traslado(EstadoTraslado.RECIBIDO), gerenteGeneral),
+    ).toThrow(UnprocessableEntityException);
   });
 });
 

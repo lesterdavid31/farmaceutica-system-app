@@ -14,7 +14,7 @@ import { VentasService } from './ventas.service';
 
 @ApiTags('Ventas')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.GERENTE, Rol.CAJERO)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.GERENTE, Rol.CAJERO)
 @Controller('ventas')
 export class VentasController {
   constructor(private readonly ventas: VentasService) {}

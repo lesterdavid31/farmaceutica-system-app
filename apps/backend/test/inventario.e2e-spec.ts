@@ -110,13 +110,20 @@ describe('Inventario (e2e)', () => {
     prisma = app.get(PrismaService);
     motor = app.get(MotorInventarioService);
 
-    usuarioId = (await prisma.usuario.findUniqueOrThrow({ where: { email: 'admin@farmacia.gt' } }))
-      .id;
+    usuarioId = (
+      await prisma.usuario.findUniqueOrThrow({ where: { email: 'gerente.general@farmacia.gt' } })
+    ).id;
     xelaId = (await prisma.ubicacion.findUniqueOrThrow({ where: { codigo: 'CC-XELA' } })).id;
     bodegaId = (await prisma.ubicacion.findUniqueOrThrow({ where: { codigo: 'BOD-CENTRAL' } })).id;
     categoriaId = (await prisma.categoria.findFirstOrThrow()).id;
 
-    for (const cuenta of ['admin', 'auditor', 'gerente.xela', 'cajero.xela', 'gerente.bodega']) {
+    for (const cuenta of [
+      'gerente.general',
+      'auditor',
+      'gerente.xela',
+      'cajero.xela',
+      'gerente.bodega',
+    ]) {
       const res = await http()
         .post(`${API}/auth/login`)
         .send({ email: `${cuenta}@farmacia.gt`, password: PASSWORD });
@@ -452,7 +459,10 @@ describe('Inventario (e2e)', () => {
     });
 
     it('las alertas incluyen lotes vencidos y próximos a vencer del seed', async () => {
-      const res = await http().get(`${API}/inventario/alertas`).set(como('admin')).expect(200);
+      const res = await http()
+        .get(`${API}/inventario/alertas`)
+        .set(como('gerente.general'))
+        .expect(200);
       const cuerpo = res.body as { diasAlerta: number; vencidos: unknown[]; porVencer: unknown[] };
       expect(cuerpo.diasAlerta).toBe(90);
       expect(cuerpo.vencidos.length).toBeGreaterThan(0);

@@ -103,8 +103,10 @@ export async function sembrarPlanillaYActivos(prisma: PrismaClient) {
   const configuracion = new ConfiguracionService(db, undefined as never);
   const planillas = new PlanillasService(db, configuracion);
   const activos = new ActivosService(db);
-  const u = await prisma.usuario.findUniqueOrThrow({ where: { email: 'admin@farmacia.gt' } });
-  const admin: UsuarioAutenticado = {
+  const u = await prisma.usuario.findUniqueOrThrow({
+    where: { email: 'gerente.general@farmacia.gt' },
+  });
+  const gerenteGeneral: UsuarioAutenticado = {
     id: u.id,
     nombre: u.nombre,
     email: u.email,
@@ -153,7 +155,7 @@ export async function sembrarPlanillaYActivos(prisma: PrismaClient) {
     for (const mes of [8, 9]) {
       const planilla = await planillas.generar(
         { ubicacionId: ubicacion.id, anio: 2026, mes },
-        admin,
+        gerenteGeneral,
       );
       // Un descuento por anticipo en septiembre, para que no todas las líneas sean iguales.
       if (mes === 9 && planilla.detalles.length > 1) {
@@ -161,10 +163,10 @@ export async function sembrarPlanillaYActivos(prisma: PrismaClient) {
           planilla.id,
           planilla.detalles[0].id,
           { otrosDescuentos: 300 },
-          admin,
+          gerenteGeneral,
         );
       }
-      await planillas.cerrar(planilla.id, admin);
+      await planillas.cerrar(planilla.id, gerenteGeneral);
       generadas++;
     }
   }
@@ -185,7 +187,7 @@ export async function sembrarPlanillaYActivos(prisma: PrismaClient) {
           costo: a.costo,
           valorResidual: a.residual,
         },
-        admin,
+        gerenteGeneral,
       );
       registrados++;
     }
@@ -199,7 +201,7 @@ export async function sembrarPlanillaYActivos(prisma: PrismaClient) {
       ubicacionDestinoId: ubicaciones.find((x) => x.codigo === 'SG-ZACAPA')!.id,
       motivo: 'Reemplazo de la computadora dañada del stand',
     },
-    admin,
+    gerenteGeneral,
   );
 
   console.log(

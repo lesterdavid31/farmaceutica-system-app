@@ -114,7 +114,7 @@ describe('Caja y ventas (e2e)', () => {
         cantidad,
         tipo: TipoMovimientoInventario.AJUSTE,
         motivo: 'Prueba',
-        usuarioId: usuarios.admin.id,
+        usuarioId: usuarios['gerente.general'].id,
       });
     }
     // Consultas en secuencia: una transacción usa una sola conexión.
@@ -165,7 +165,7 @@ describe('Caja y ventas (e2e)', () => {
     categoriaId = (await prisma.categoria.findFirstOrThrow()).id;
 
     const cuentas = [
-      'admin',
+      'gerente.general',
       'auditor',
       'gerente.xela',
       'gerente.escuintla',
@@ -466,7 +466,7 @@ describe('Caja y ventas (e2e)', () => {
         .send({ montoInicial: 0 })
         .expect(403);
       await http().post(`${API}/ventas`).set(como('gerente.xela')).send({}).expect(403);
-      await http().post(`${API}/ventas`).set(como('admin')).send({}).expect(403);
+      await http().post(`${API}/ventas`).set(como('gerente.general')).send({}).expect(403);
     });
 
     it('el cajero no anula ventas y la anulación exige motivo', async () => {
@@ -511,7 +511,7 @@ describe('Caja y ventas (e2e)', () => {
       // Los montos DECIMAL llegan como texto; la existencia, como número.
       expect(typeof productos[0].precioVenta).toBe('string');
       expect(typeof productos[0].vigente).toBe('number');
-      await http().get(`${API}/ventas/productos`).set(como('admin')).expect(403);
+      await http().get(`${API}/ventas/productos`).set(como('gerente.general')).expect(403);
     });
 
     it('cada rol ve solo los turnos y ventas que le corresponden', async () => {

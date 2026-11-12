@@ -15,11 +15,11 @@ import {
 } from './pedidos.dto';
 import { PedidosService } from './pedidos.service';
 
-const SUCURSAL = [Rol.ADMIN, Rol.GERENTE, Rol.CAJERO] as const;
+const SUCURSAL = [Rol.GERENTE_GENERAL, Rol.GERENTE, Rol.CAJERO] as const;
 
 @ApiTags('Pedidos')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER, Rol.GERENTE, Rol.CAJERO)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER, Rol.GERENTE, Rol.CAJERO)
 @Controller('pedidos')
 export class PedidosController {
   constructor(private readonly pedidos: PedidosService) {}
@@ -27,7 +27,7 @@ export class PedidosController {
   @Post('disponibilidad')
   @HttpCode(200)
   @SinBitacora()
-  @Roles(Rol.ADMIN, Rol.OPERADOR_CALL_CENTER)
+  @Roles(Rol.GERENTE_GENERAL, Rol.OPERADOR_CALL_CENTER)
   @ApiOperation({
     summary: 'Consultar disponibilidad y tiempos por sucursal (RF-21, RN-15 a RN-17)',
   })
@@ -58,7 +58,7 @@ export class PedidosController {
   }
 
   @Post()
-  @Roles(Rol.ADMIN, Rol.OPERADOR_CALL_CENTER)
+  @Roles(Rol.GERENTE_GENERAL, Rol.OPERADOR_CALL_CENTER)
   @Auditar({ entidad: 'Pedido' })
   @ApiOperation({ summary: 'Crear pedido con la sucursal elegida (RF-22)' })
   crear(@Body() dto: CrearPedidoDto, @UsuarioActual() usuario: UsuarioAutenticado) {
@@ -111,7 +111,7 @@ export class PedidosController {
 
   @Post(':id/cancelar')
   @HttpCode(200)
-  @Roles(Rol.ADMIN, Rol.OPERADOR_CALL_CENTER, Rol.GERENTE)
+  @Roles(Rol.GERENTE_GENERAL, Rol.OPERADOR_CALL_CENTER, Rol.GERENTE)
   @Auditar({ entidad: 'Pedido', modelo: 'pedido', accion: 'CANCELAR' })
   @ApiOperation({ summary: 'Cancelar con motivo (hasta EN_CAMINO)' })
   cancelar(

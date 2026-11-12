@@ -4,7 +4,11 @@ import { PaginacionDto } from '../common/paginacion';
 import { TipoMovimientoInventario } from '../generated/prisma/enums';
 
 export class FiltroDashboardDto {
-  @ApiPropertyOptional({ type: String, format: 'uuid', description: 'Solo ADMIN y AUDITOR' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    description: 'Solo GERENTE_GENERAL y AUDITOR',
+  })
   @IsOptional()
   @IsUUID()
   ubicacionId?: string;

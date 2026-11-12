@@ -140,7 +140,7 @@ function FormularioProveedor({
 }
 
 export function Proveedores() {
-  const puedeEditar = useUsuario().rol === 'ADMIN';
+  const puedeEditar = useUsuario().rol === 'GERENTE_GENERAL';
   const listado = useListado<Proveedor, { q: string; activo: string }>('proveedores', {
     q: '',
     activo: 'true',

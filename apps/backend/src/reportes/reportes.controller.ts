@@ -6,10 +6,10 @@ import { Rol } from '../generated/prisma/enums';
 import { FiltroDashboardDto, FiltroMovimientosDto, RangoFechasDto } from './reportes.dto';
 import { ReportesService } from './reportes.service';
 
-/** Auditoría y dashboards: ADMIN y AUDITOR ven todo; el GERENTE, solo su ubicación (RF-37). */
+/** Auditoría y dashboards: GERENTE_GENERAL y AUDITOR ven todo; el GERENTE, solo su ubicación (RF-37). */
 @ApiTags('Reportes')
 @ApiBearerAuth()
-@Roles(Rol.ADMIN, Rol.AUDITOR, Rol.GERENTE)
+@Roles(Rol.GERENTE_GENERAL, Rol.AUDITOR, Rol.GERENTE)
 @Controller('reportes')
 export class ReportesController {
   constructor(private readonly reportes: ReportesService) {}

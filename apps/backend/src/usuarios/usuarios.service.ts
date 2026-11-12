@@ -4,6 +4,8 @@ import { Prisma } from '../generated/prisma/client';
 import { ReglaNegocioException } from '../common/errores';
 import { pagina, saltar } from '../common/paginacion';
 import { PrismaService } from '../prisma/prisma.service';
+import { Rol } from '../generated/prisma/enums';
+import { ROLES_SOLICITABLES } from './reglas-solicitud';
 import { validarRolUbicacion } from './reglas-usuario';
 import { ActualizarUsuarioDto, CrearUsuarioDto, FiltroUsuariosDto } from './usuarios.dto';
 
@@ -21,6 +23,18 @@ const SELECCION_USUARIO = {
   createdAt: true,
   updatedAt: true,
 } as const satisfies Prisma.UsuarioSelect;
+
+/**
+ * Las cuentas de gerente y cajero solo nacen de una solicitud aprobada por el gerente general
+ * (separación de funciones); TI no las crea por su cuenta.
+ */
+function exigirSolicitudParaSucursal(rol: Rol) {
+  if ((ROLES_SOLICITABLES as readonly Rol[]).includes(rol)) {
+    throw new ReglaNegocioException(
+      'Las cuentas de gerente y cajero se crean desde una solicitud aprobada por el gerente general',
+    );
+  }
+}
 
 @Injectable()
 export class UsuariosService {
@@ -62,6 +76,7 @@ export class UsuariosService {
   }
 
   async crear(dto: CrearUsuarioDto) {
+    exigirSolicitudParaSucursal(dto.rol);
     const ubicacionId = dto.ubicacionId ?? null;
     validarRolUbicacion(dto.rol, await this.ubicacionDe(ubicacionId));
     const { password, ...datos } = dto;
@@ -74,6 +89,9 @@ export class UsuariosService {
   async actualizar(id: string, dto: ActualizarUsuarioDto, actorId: string) {
     const actual = await this.obtener(id);
     const rol = dto.rol ?? actual.rol;
+    if (rol !== actual.rol) {
+      exigirSolicitudParaSucursal(rol);
+    }
     const ubicacionId = dto.ubicacionId !== undefined ? dto.ubicacionId : actual.ubicacionId;
     validarRolUbicacion(rol, await this.ubicacionDe(ubicacionId));
 

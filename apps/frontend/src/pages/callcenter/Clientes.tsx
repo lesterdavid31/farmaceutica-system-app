@@ -38,7 +38,7 @@ import { DialogoCliente, DialogoDireccion } from './dialogos-cliente';
 
 export function Clientes() {
   const navegar = useNavigate();
-  const puedeEditar = tieneRol(useUsuario(), ['ADMIN', 'OPERADOR_CALL_CENTER']);
+  const puedeEditar = tieneRol(useUsuario(), ['GERENTE_GENERAL', 'OPERADOR_CALL_CENTER']);
   const [nuevo, setNuevo] = useState(false);
   const listado = useListado<Cliente, { q: string }>('clientes', { q: '' });
 
@@ -142,7 +142,7 @@ export function Clientes() {
 
 export function DetalleCliente() {
   const { id } = useParams();
-  const puedeEditar = tieneRol(useUsuario(), ['ADMIN', 'OPERADOR_CALL_CENTER']);
+  const puedeEditar = tieneRol(useUsuario(), ['GERENTE_GENERAL', 'OPERADOR_CALL_CENTER']);
   const [editando, setEditando] = useState(false);
   const [direccion, setDireccion] = useState<DireccionCliente | 'nueva' | null>(null);
   const consulta = useQuery({

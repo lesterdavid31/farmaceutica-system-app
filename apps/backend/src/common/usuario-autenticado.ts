@@ -6,12 +6,26 @@ export interface UsuarioAutenticado {
   nombre: string;
   email: string;
   rol: Rol;
-  /** Nulo para los roles de alcance global (ADMIN, AUDITOR, OPERADOR_CALL_CENTER). */
+  /** Nulo para los roles de alcance global (ADMIN, GERENTE_GENERAL, AUDITOR, OPERADOR_CALL_CENTER). */
   ubicacionId: string | null;
 }
 
 /** Roles que ven todas las ubicaciones. GERENTE y CAJERO solo ven la suya. */
-export const ROLES_GLOBALES: readonly Rol[] = [Rol.ADMIN, Rol.AUDITOR, Rol.OPERADOR_CALL_CENTER];
+export const ROLES_GLOBALES: readonly Rol[] = [
+  Rol.ADMIN,
+  Rol.GERENTE_GENERAL,
+  Rol.AUDITOR,
+  Rol.OPERADOR_CALL_CENTER,
+];
+
+/** Todos los roles salvo el administrador de TI, que no ve datos del negocio. */
+export const ROLES_NEGOCIO: readonly Rol[] = [
+  Rol.GERENTE_GENERAL,
+  Rol.GERENTE,
+  Rol.CAJERO,
+  Rol.OPERADOR_CALL_CENTER,
+  Rol.AUDITOR,
+];
 
 export function esRolGlobal(rol: Rol) {
   return ROLES_GLOBALES.includes(rol);

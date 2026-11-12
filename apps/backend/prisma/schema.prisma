@@ -28,13 +28,25 @@ enum TipoUbicacion {
 }
 
 enum Rol {
+  /// Administrador de TI: usuarios, ubicaciones, estado del sistema y bitácora.
   ADMIN
+  /// Gerente general: opera el negocio en todas las ubicaciones.
+  GERENTE_GENERAL
   GERENTE
   CAJERO
   OPERADOR_CALL_CENTER
   AUDITOR
 
   @@map("rol")
+}
+
+enum EstadoSolicitudUsuario {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  ATENDIDA
+
+  @@map("estado_solicitud_usuario")
 }
 
 enum Puesto {
@@ -194,6 +206,7 @@ model Ubicacion {
   activos                ActivoFijo[]
   historialActivoOrigen  HistorialUbicacionActivo[] @relation("HistorialActivoOrigen")
   historialActivoDestino HistorialUbicacionActivo[] @relation("HistorialActivoDestino")
+  solicitudesUsuario     SolicitudUsuario[]
 
   @@index([tipo])
   @@map("ubicacion")
@@ -205,7 +218,7 @@ model Usuario {
   email        String     @unique
   passwordHash String     @map("password_hash")
   rol          Rol
-  /// Nulo para ADMIN, AUDITOR y OPERADOR_CALL_CENTER (alcance global).
+  /// Nulo para ADMIN, GERENTE_GENERAL, AUDITOR y OPERADOR_CALL_CENTER (alcance global).
   ubicacionId  String?    @map("ubicacion_id") @db.Uuid
   ubicacion    Ubicacion? @relation(fields: [ubicacionId], references: [id])
   activo       Boolean    @default(true)
@@ -229,6 +242,10 @@ model Usuario {
   planillasCerradas     Planilla[]
   historialActivos      HistorialUbicacionActivo[]
   bitacora              Bitacora[]
+  solicitudesHechas     SolicitudUsuario[]         @relation("SolicitudSolicitadaPor")
+  solicitudesRevisadas  SolicitudUsuario[]         @relation("SolicitudRevisadaPor")
+  solicitudesAtendidas  SolicitudUsuario[]         @relation("SolicitudAtendidaPor")
+  solicitudOrigen       SolicitudUsuario?          @relation("SolicitudUsuarioCreado")
 
   @@index([rol])
   @@index([ubicacionId])
@@ -836,6 +853,38 @@ model Configuracion {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion")
+}
+
+/// Cuenta de gerente o cajero que pide un gerente de sucursal: la aprueba el gerente general y la
+/// crea el administrador de TI (PENDIENTE → APROBADA → ATENDIDA, o RECHAZADA).
+model SolicitudUsuario {
+  id              String                 @id @default(uuid()) @db.Uuid
+  numero          Int                    @unique @default(autoincrement())
+  nombre          String
+  email           String
+  rol             Rol
+  ubicacionId     String                 @map("ubicacion_id") @db.Uuid
+  ubicacion       Ubicacion              @relation(fields: [ubicacionId], references: [id])
+  justificacion   String?
+  estado          EstadoSolicitudUsuario @default(PENDIENTE)
+  solicitadoPorId String                 @map("solicitado_por") @db.Uuid
+  solicitadoPor   Usuario                @relation("SolicitudSolicitadaPor", fields: [solicitadoPorId], references: [id])
+  revisadoPorId   String?                @map("revisado_por") @db.Uuid
+  revisadoPor     Usuario?               @relation("SolicitudRevisadaPor", fields: [revisadoPorId], references: [id])
+  fechaRevision   DateTime?              @map("fecha_revision")
+  motivoRechazo   String?                @map("motivo_rechazo")
+  atendidoPorId   String?                @map("atendido_por") @db.Uuid
+  atendidoPor     Usuario?               @relation("SolicitudAtendidaPor", fields: [atendidoPorId], references: [id])
+  fechaAtencion   DateTime?              @map("fecha_atencion")
+  /// Usuario creado al atender la solicitud.
+  usuarioId       String?                @unique @map("usuario_id") @db.Uuid
+  usuario         Usuario?               @relation("SolicitudUsuarioCreado", fields: [usuarioId], references: [id])
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+
+  @@index([estado, createdAt])
+  @@index([ubicacionId, estado])
+  @@map("solicitud_usuario")
 }
 
 /// Toda acción que crea, modifica o anula datos (RN-27). Inmutable.
